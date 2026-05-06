@@ -1,0 +1,126 @@
+@model JioCxRcsWrapper.Application.Dashboard.DashboardSummary
+@inject JioCxRcsWrapper.Web.Services.PermissionUiService PermissionUi
+@{
+    ViewData["Title"] = "Dashboard";
+    var canCreateCampaign = await PermissionUi.CanAsync("Campaigns", "Add");
+    var canCreateTemplate = await PermissionUi.CanAsync("MessageBuilder", "Add");
+}
+
+<div class="dashboard-page">
+    <section class="dashboard-hero">
+        <div>
+            <div class="dashboard-eyebrow">RCSX Command Center</div>
+            <h1>Welcome back, @User.Identity?.Name</h1>
+            <p>Live campaign health, delivery movement, and recent activity in one place.</p>
+        </div>
+        <div class="dashboard-actions">
+            @if (canCreateCampaign)
+            {
+                <a asp-controller="Campaigns" asp-action="Create" class="btn btn-light dashboard-soft-btn">New Campaign</a>
+            }
+            @if (canCreateTemplate)
+            {
+                <a asp-controller="MessageBuilder" asp-action="Create" class="btn btn-primary dashboard-primary-btn">Create Template</a>
+            }
+        </div>
+    </section>
+
+    <section class="dashboard-kpis" id="dashboard-cards">
+        <article class="dashboard-kpi-card">
+            <div class="dashboard-kpi-top"><span class="dashboard-kpi-icon">C</span><span>Total Campaigns</span></div>
+            <div class="dashboard-kpi-value" data-dashboard-value="totalCampaigns">@Model.TotalCampaigns</div>
+            <div class="dashboard-kpi-foot">All active and historical campaigns</div>
+        </article>
+        <article class="dashboard-kpi-card">
+            <div class="dashboard-kpi-top"><span class="dashboard-kpi-icon">S</span><span>Messages Sent</span></div>
+            <div class="dashboard-kpi-value" data-dashboard-value="sent">@Model.Sent</div>
+            <div class="dashboard-kpi-foot">Queued contacts accepted for send</div>
+        </article>
+        <article class="dashboard-kpi-card">
+            <div class="dashboard-kpi-top"><span class="dashboard-kpi-icon">D</span><span>Delivered</span></div>
+            <div class="dashboard-kpi-value" data-dashboard-value="delivered">@Model.Delivered</div>
+            <div class="dashboard-kpi-foot"><span data-dashboard-value="deliveryRate">@Model.DeliveryRate</span>% delivery rate</div>
+        </article>
+        <article class="dashboard-kpi-card">
+            <div class="dashboard-kpi-top"><span class="dashboard-kpi-icon">F</span><span>Failed</span></div>
+            <div class="dashboard-kpi-value" data-dashboard-value="failed">@Model.Failed</div>
+            <div class="dashboard-kpi-foot">Contacts needing review</div>
+        </article>
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="dashboard-panel dashboard-panel-large">
+            <div class="dashboard-panel-header">
+                <div>
+                    <h2>Message Status Distribution</h2>
+                    <p>Current contact status breakdown</p>
+                </div>
+                <div class="dashboard-legend">
+                    <span><i class="legend-pending"></i>Pending</span>
+                    <span><i class="legend-sent"></i>Sent</span>
+                    <span><i class="legend-delivered"></i>Delivered</span>
+                    <span><i class="legend-failed"></i>Failed</span>
+                    <span><i class="legend-opened"></i>Opened</span>
+                    <span><i class="legend-clicked"></i>Clicked</span>
+                </div>
+            </div>
+            <div class="dashboard-chart-wrap dashboard-chart-tall">
+                <canvas id="messageChart"></canvas>
+            </div>
+        </article>
+
+        <article class="dashboard-panel">
+            <div class="dashboard-panel-header">
+                <div>
+                    <h2>Delivery Split</h2>
+                    <p>Outcome mix</p>
+                </div>
+            </div>
+            <div class="dashboard-chart-wrap">
+                <canvas id="deliveryChart"></canvas>
+            </div>
+        </article>
+
+        <article class="dashboard-panel">
+            <div class="dashboard-panel-header">
+                <div>
+                    <h2>RCSX Insights</h2>
+                    <p>Operational prompts from live data</p>
+                </div>
+            </div>
+            <div class="dashboard-insights" id="dashboard-insights"></div>
+        </article>
+
+        <article class="dashboard-panel dashboard-panel-large">
+            <div class="dashboard-panel-header">
+                <div>
+                    <h2>Recent Campaigns</h2>
+                    <p>Latest campaign activity and contact counts</p>
+                </div>
+                <a asp-controller="Campaigns" asp-action="Index" class="dashboard-view-link">View All</a>
+            </div>
+            <div class="dashboard-table-wrap">
+                <table class="table dashboard-table align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th>Campaign</th>
+                        <th>Status</th>
+                        <th>Contacts</th>
+                        <th>Created</th>
+                    </tr>
+                    </thead>
+                    <tbody id="recent-campaigns"></tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        window.dashboardInitialData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+}

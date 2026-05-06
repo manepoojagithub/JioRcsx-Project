@@ -1,0 +1,103 @@
+@model JioCxRcsWrapper.Web.Models.Clients.CreateClientViewModel
+
+@{
+    ViewData["Title"] = "Create Client";
+}
+
+<section class="page-hero setup-hero">
+    <div>
+        <div class="page-eyebrow">Setup Wizard</div>
+        <h1>Setup Company Information</h1>
+        <p>Create a JioCX agent profile, upload branding, and provision the manager user.</p>
+    </div>
+</section>
+
+<div class="wizard-steps mb-4">
+    <span class="active">1 <b>Company Info</b></span>
+    <span>2 <b>Branding</b></span>
+    <span>3 <b>Agent Key</b></span>
+    <span>4 <b>Manager</b></span>
+</div>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="panel-form">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>Basic Information</h2>
+                <p>Public brand and JioCX agent identity.</p>
+            </div>
+            <span class="section-count">Step 1/4</span>
+        </div>
+        <div class="form-grid">
+            <div><label asp-for="BrandName" class="form-label"></label><input asp-for="BrandName" class="form-control" /></div>
+            <div><label asp-for="AgentName" class="form-label"></label><input asp-for="AgentName" class="form-control" /></div>
+            <div><label asp-for="AgentId" class="form-label"></label><input asp-for="AgentId" class="form-control" /></div>
+            <div><label asp-for="SiteName" class="form-label"></label><input asp-for="SiteName" class="form-control" /></div>
+        </div>
+    </section>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>Branding</h2>
+                <p>Logo is stored locally and used for dynamic client branding.</p>
+            </div>
+            <span class="section-count">Step 2/4</span>
+        </div>
+        <div class="form-grid">
+            <div><label asp-for="LogoFile" class="form-label">Logo</label><input asp-for="LogoFile" class="form-control" type="file" accept="image/*" /></div>
+        </div>
+    </section>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>JioCX Credentials</h2>
+                <p>Agent key is encrypted before persistence.</p>
+            </div>
+            <span class="section-count">Step 3/4</span>
+        </div>
+        <div><label asp-for="AgentKey" class="form-label"></label><input asp-for="AgentKey" class="form-control" /></div>
+    </section>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>Manager Access</h2>
+                <p>A manager account is automatically created for this client.</p>
+            </div>
+            <span class="section-count">Step 4/4</span>
+        </div>
+        <div class="form-grid">
+            <div><label asp-for="ManagerName" class="form-label"></label><input asp-for="ManagerName" class="form-control" /></div>
+            <div><label asp-for="ManagerEmail" class="form-label"></label><input asp-for="ManagerEmail" class="form-control" /></div>
+            <div><label asp-for="ManagerPassword" class="form-label"></label><input asp-for="ManagerPassword" class="form-control" /></div>
+        </div>
+    </section>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>Credit Settings</h2>
+                <p>Controls campaign queue eligibility and successful-send debit.</p>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div><label asp-for="Credits" class="form-label"></label><input asp-for="Credits" class="form-control" /></div>
+            <div><label asp-for="CreditCostPerMessage" class="form-label">Credits Per Successful Message</label><input asp-for="CreditCostPerMessage" class="form-control" /></div>
+            <div><label asp-for="LowCreditThreshold" class="form-label">Low Credit Warning Threshold</label><input asp-for="LowCreditThreshold" class="form-control" /></div>
+        </div>
+    </section>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary panel-primary-btn">Save Client</button>
+        <a asp-action="Index" class="btn btn-light panel-soft-btn">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

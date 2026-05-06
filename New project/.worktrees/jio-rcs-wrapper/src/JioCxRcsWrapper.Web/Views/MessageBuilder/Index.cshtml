@@ -1,0 +1,113 @@
+@model JioCxRcsWrapper.Application.Common.Pagination.PagedResult<JioCxRcsWrapper.Application.Templates.MessageTemplateSummary>
+@inject JioCxRcsWrapper.Web.Services.PermissionUiService PermissionUi
+@{
+    ViewData["Title"] = "Message Builder";
+    var canAdd = await PermissionUi.CanAsync("MessageBuilder", "Add");
+    var canUpdate = await PermissionUi.CanAsync("MessageBuilder", "Update");
+    var canDelete = await PermissionUi.CanAsync("MessageBuilder", "Delete");
+}
+
+<section class="page-hero panel-hero">
+    <div>
+        <div class="page-eyebrow">Template Studio</div>
+        <h1>Message Builder</h1>
+        <p>Create and manage send-ready RCSX templates with media uploaded to JioCX.</p>
+    </div>
+    @if (canAdd)
+    {
+        <a asp-action="Create" class="btn btn-primary panel-primary-btn">Create Template</a>
+    }
+</section>
+
+<section class="metric-strip">
+    <article class="metric-tile"><span>Templates</span><strong>@ViewBag.TemplateCount</strong></article>
+    <article class="metric-tile"><span>Rich Cards</span><strong>@ViewBag.RichCards</strong></article>
+    <article class="metric-tile"><span>Media Ready</span><strong>@ViewBag.MediaReady</strong></article>
+</section>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<section class="panel-card">
+    <div class="panel-card-header">
+        <div>
+            <h2>Template Library</h2>
+            <p>Stored payloads are ready for Send Message API usage.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table panel-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>
+                    Name
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Type
+                    <select class="form-select form-select-sm grid-filter-select" data-column="MessageType">
+                        <option value="">All</option>
+                        @foreach (var type in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.MessageType>())
+                        {
+                            <option value="@type" selected="@(ViewContext.HttpContext.Request.Query["MessageType"] == type.ToString())">@type</option>
+                        }
+                    </select>
+                </th>
+                <th>
+                    Client
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter..." />
+                </th>
+                <th>Local Preview</th>
+                <th>JioCX URL</th>
+                <th class="text-end action-cell">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var template in Model.Items)
+            {
+                var previewUrl = !string.IsNullOrWhiteSpace(template.RcsMediaUrl)
+                    ? template.RcsMediaUrl
+                    : template.LocalMediaPath;
+                <tr>
+                    <td class="fw-semibold">@template.Name</td>
+                    <td><span class="status-pill status-scheduled">@template.MessageType</span></td>
+                    <td>@template.ClientName</td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(previewUrl))
+                        {
+                            <a href="@previewUrl" target="_blank" class="dashboard-view-link">Preview</a>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </td>
+                    <td class="text-break small">@(template.RcsMediaUrl ?? "-")</td>
+                    <td class="text-end action-cell">
+                        <div class="action-stack">
+                        @if (canUpdate)
+                        {
+                            <a asp-action="Edit" asp-route-id="@template.Id" class="btn btn-sm btn-outline-primary">Update</a>
+                        }
+                        @if (canDelete)
+                        {
+                            <form asp-action="Delete" asp-route-id="@template.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this template?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        }
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model" />
+</section>

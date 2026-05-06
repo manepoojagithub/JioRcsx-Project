@@ -1,0 +1,92 @@
+@model JioCxRcsWrapper.Web.Models.Clients.EditClientViewModel
+
+@{
+    ViewData["Title"] = "Update Client";
+}
+
+<section class="page-hero setup-hero">
+    <div>
+        <div class="page-eyebrow">Client Update</div>
+        <h1>Update Company Information</h1>
+        <p>Maintain agent identity, branding, and encrypted JioCX credentials.</p>
+    </div>
+</section>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data" class="panel-form">
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="LogoPath" type="hidden" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>Basic Information</h2>
+                <p>Public brand and JioCX agent identity.</p>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div><label asp-for="BrandName" class="form-label"></label><input asp-for="BrandName" class="form-control" /></div>
+            <div><label asp-for="AgentName" class="form-label"></label><input asp-for="AgentName" class="form-control" /></div>
+            <div>
+                <label asp-for="AgentId" class="form-label"></label>
+                <input asp-for="AgentId" class="form-control" />
+                <div class="form-text">Masked value keeps the existing Agent ID. Replace it only when changing credentials.</div>
+            </div>
+            <div><label asp-for="SiteName" class="form-label"></label><input asp-for="SiteName" class="form-control" /></div>
+        </div>
+    </section>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>Branding</h2>
+                <p>Upload a new logo only when the current branding needs to change.</p>
+            </div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.LogoPath))
+        {
+            <div class="mb-3">
+                <img src="@Model.LogoPath" alt="Current logo" style="max-height:72px" class="rounded border bg-white p-2" />
+            </div>
+        }
+        <div><label asp-for="LogoFile" class="form-label">Logo</label><input asp-for="LogoFile" class="form-control" type="file" accept="image/*" /></div>
+    </section>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>JioCX Credentials</h2>
+                <p>Leave Agent Key blank to keep the existing encrypted key.</p>
+            </div>
+        </div>
+        <div>
+            <label asp-for="AgentKey" class="form-label">Agent Key</label>
+            <input asp-for="AgentKey" class="form-control" />
+            <div class="form-text">Masked value keeps the existing encrypted API key.</div>
+        </div>
+    </section>
+
+    <section class="panel-card form-section">
+        <div class="panel-card-header">
+            <div>
+                <h2>Credit Settings</h2>
+                <p>Changes apply to the client and its manager users.</p>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div><label asp-for="Credits" class="form-label"></label><input asp-for="Credits" class="form-control" /></div>
+            <div><label asp-for="CreditCostPerMessage" class="form-label">Credits Per Successful Message</label><input asp-for="CreditCostPerMessage" class="form-control" /></div>
+            <div><label asp-for="LowCreditThreshold" class="form-label">Low Credit Warning Threshold</label><input asp-for="LowCreditThreshold" class="form-control" /></div>
+        </div>
+    </section>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary panel-primary-btn">Update Client</button>
+        <a asp-action="Index" class="btn btn-light panel-soft-btn">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

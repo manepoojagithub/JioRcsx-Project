@@ -1,0 +1,97 @@
+@model JioCxRcsWrapper.Application.Common.Pagination.PagedResult<JioCxRcsWrapper.Application.Clients.ClientSummary>
+@inject JioCxRcsWrapper.Web.Services.PermissionUiService PermissionUi
+
+@{
+    ViewData["Title"] = "Clients";
+    var canUpdate = await PermissionUi.CanAsync("Clients", "Update");
+    var canDelete = await PermissionUi.CanAsync("Clients", "Delete");
+}
+
+<section class="page-hero panel-hero">
+    <div>
+        <div class="page-eyebrow">Client Onboarding</div>
+        <h1>Agents & Brands</h1>
+        <p>Manage onboarded JioCX agents, branding, and manager access.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary panel-primary-btn">Create Client</a>
+</section>
+
+<section class="metric-strip">
+    <article class="metric-tile">
+        <span>Total Clients</span>
+        <strong>@ViewBag.TotalClients</strong>
+    </article>
+    <article class="metric-tile">
+        <span>Active Agents</span>
+        <strong>@ViewBag.ActiveAgents</strong>
+    </article>
+</section>
+
+<section class="panel-card">
+    <div class="panel-card-header">
+        <div>
+            <h2>Client Directory</h2>
+            <p>All agents visible in your current role scope.</p>
+        </div>
+    </div>
+    @if (TempData["ClientMessage"] is string message)
+    {
+        <div class="alert alert-success">@message</div>
+    }
+    @if (TempData["ClientError"] is string error)
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    <div class="table-responsive">
+        <table class="table panel-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>
+                    Brand
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="BrandName" value="@ViewContext.HttpContext.Request.Query["BrandName"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Agent
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="AgentName" value="@ViewContext.HttpContext.Request.Query["AgentName"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Agent ID
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="AgentId" value="@ViewContext.HttpContext.Request.Query["AgentId"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Site
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="SiteName" value="@ViewContext.HttpContext.Request.Query["SiteName"]" placeholder="Filter..." />
+                </th>
+                <th>Credits</th>
+                <th class="text-end action-cell">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var client in Model.Items)
+            {
+                <tr>
+                    <td class="fw-semibold">@client.BrandName</td>
+                    <td>@client.AgentName</td>
+                    <td><code>@client.AgentId</code></td>
+                    <td>@client.SiteName</td>
+                    <td>@client.Credits</td>
+                    <td class="text-end action-cell">
+                        @if (canUpdate)
+                        {
+                            <a asp-action="Edit" asp-route-id="@client.Id" class="btn btn-sm btn-outline-primary">Update</a>
+                        }
+                        @if (canDelete)
+                        {
+                            <form asp-action="Delete" asp-route-id="@client.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this client?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model" />
+</section>

@@ -1,0 +1,117 @@
+@model JioCxRcsWrapper.Web.Models.MessageBuilder.MessageBuilderViewModel
+@{
+    ViewData["Title"] = "Message Builder";
+}
+
+<section class="page-hero builder-hero">
+    <div>
+        <div class="page-eyebrow">Visual Editor</div>
+        <h1>Create Message Template</h1>
+        <p>Design plain text or rich card payloads with media, CTA buttons, and live RCSX preview.</p>
+    </div>
+</section>
+
+<form id="message-builder-form" asp-action="Preview" method="post" enctype="multipart/form-data" class="builder-shell" data-save-url="@Url.Action("SaveTemplate")">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="MessageType" />
+
+    <section class="builder-editor panel-card">
+        <div class="builder-toolbar">
+            <div class="btn-group" role="group" aria-label="Message type">
+                <button type="button" class="btn btn-primary" data-message-type="PlainText">Plain Text</button>
+                <button type="button" class="btn btn-outline-primary" data-message-type="RichCard">Rich Card</button>
+            </div>
+            <span class="section-count">Payload Editor</span>
+        </div>
+
+        <div class="builder-form-grid">
+            <div>
+                <label asp-for="TemplateName" class="form-label">Template Name</label>
+                <input asp-for="TemplateName" class="form-control" placeholder="Promotional rich card" />
+            </div>
+            <div>
+                <label asp-for="ClientId" class="form-label">Client For JioCX Upload</label>
+                <select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select">
+                    <option value="">Use current client</option>
+                </select>
+            </div>
+        </div>
+
+        <div data-panel="PlainText" class="builder-panel">
+            <label class="form-label">Plain Text</label>
+            <div class="rich-toolbar" role="group">
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="bold"><strong>B</strong></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="italic"><em>I</em></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="underline"><u>U</u></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="insertUnorderedList">List</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyLeft">Left</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyCenter">Center</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyRight">Right</button>
+            </div>
+            <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Text"></div>
+            <textarea asp-for="Text" class="d-none"></textarea>
+        </div>
+
+        <div data-panel="RichCard" class="builder-panel d-none">
+            <div class="builder-form-grid">
+                <div>
+                    <label asp-for="Title" class="form-label"></label>
+                    <input asp-for="Title" class="form-control" maxlength="80" />
+                    <div class="form-text"><span data-count-for="Title">0</span>/80</div>
+                </div>
+                <div>
+                    <label asp-for="MediaFile" class="form-label">Upload Image / Video</label>
+                    <input asp-for="MediaFile" class="form-control" type="file" accept="image/*,video/*" />
+                </div>
+            </div>
+            <label asp-for="Description" class="form-label"></label>
+            <div class="rich-toolbar" role="group">
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="bold"><strong>B</strong></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="italic"><em>I</em></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="underline"><u>U</u></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="insertUnorderedList">List</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyLeft">Left</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyCenter">Center</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyRight">Right</button>
+            </div>
+            <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Description"></div>
+            <textarea asp-for="Description" class="d-none"></textarea>
+            <div class="form-text"><span data-count-for="Description">0</span>/2000</div>
+
+            <input asp-for="MediaUrl" type="hidden" />
+            <input asp-for="ThumbnailUrl" type="hidden" />
+            <input asp-for="LocalMediaPath" type="hidden" />
+            <input asp-for="MediaContentType" type="hidden" />
+            <div class="builder-cta-header">
+                <h2>CTA Buttons</h2>
+                <button type="button" id="add-cta" class="btn btn-sm btn-outline-primary">Add CTA</button>
+            </div>
+            <div id="cta-list" class="builder-cta-list"></div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary panel-primary-btn">Preview Payload</button>
+            <button type="button" id="save-template" class="btn btn-success">Save Template</button>
+            <button type="button" id="clear-builder" class="btn btn-light panel-soft-btn">Clear</button>
+        </div>
+    </section>
+
+    <aside class="builder-preview panel-card">
+        <div class="phone-preview">
+            <div class="phone-top">RCSX Preview</div>
+            <div id="message-builder-errors" class="alert alert-danger d-none"></div>
+            <div class="phone-message" id="rcsx-visual-preview">
+                <div id="preview-title" class="fw-semibold"></div>
+                <div id="preview-description" class="text-muted mb-2"></div>
+                <div id="preview-media"></div>
+                <div id="preview-plain" class="mt-2"></div>
+            </div>
+        </div>
+        <pre id="payload-preview" class="payload-preview"></pre>
+    </aside>
+</form>
+
+@section Scripts {
+    <script src="~/js/message-builder.js" asp-append-version="true"></script>
+}

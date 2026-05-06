@@ -1,0 +1,27 @@
+# Manual Verification Checklist
+
+- Login/logout works with seeded admin.
+- Admin can onboard a client and encrypted API key is stored.
+- Onboarding auto-creates a Manager user scoped to the client.
+- Manager cannot access onboarding or user management.
+- RBAC hides unauthorized menus and blocks unauthorized requests.
+- Dashboard shows scoped totals for admin versus client users.
+- Campaign draft can be created.
+- CSV upload accepts up to 50 contacts.
+- CSV upload rejects 51 contacts.
+- CSV upload rejects invalid mobile numbers.
+- Plain text payload preview matches the documented JioCX shape.
+- Rich card Open URL payload preview matches the documented JioCX shape.
+- Dialer, calendar, and location CTA actions are rejected for send.
+- Media upload calls only `/api/v1/uploadFile`.
+- Queue creation inserts one queue row per contact without duplicates.
+- Queue worker calls only `/api/v1/sendMessage`.
+- 429 and 500 responses retry.
+- Max retry attempts fail the queue row.
+- Zero credits pause sending and show "No credits available".
+- Webhook endpoint stores raw JSON for unknown shapes.
+- Webhook endpoint defensively maps campaign/contact/status when present.
+- SignalR dashboard and campaign groups receive updates.
+- Report table shows mobile number, status, opened, and clicked.
+- CSV report download works when credits are zero.
+- PDF report download works when credits are zero.

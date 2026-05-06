@@ -1,0 +1,36 @@
+@model JioCxRcsWrapper.Web.Models.MessageBuilder.CtaViewModel
+@using JioCxRcsWrapper.Domain.Enums
+@{
+    var index = (int)(ViewData["Index"] ?? 0);
+}
+
+<div class="border rounded p-3 mb-2" data-cta-row>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong>CTA @(index + 1)</strong>
+        <button type="button" class="btn btn-sm btn-outline-danger" data-remove-cta>Remove</button>
+    </div>
+    <div class="row g-2">
+        <div class="col-md-6">
+            <label class="form-label" for="Ctas_@(index)__Text">Text</label>
+            <input id="Ctas_@(index)__Text" name="Ctas[@index].Text" value="@Model.Text" class="form-control" maxlength="25" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="Ctas_@(index)__ActionType">Action</label>
+            <select id="Ctas_@(index)__ActionType" name="Ctas[@index].ActionType" class="form-select">
+                <option value="@CtaActionType.OpenUrl" selected="@(Model.ActionType == CtaActionType.OpenUrl)">Open URL</option>
+                <option value="@CtaActionType.SuggestedReply" selected="@(Model.ActionType == CtaActionType.SuggestedReply)">Suggested Reply</option>
+                <option value="@CtaActionType.Dialer" selected="@(Model.ActionType == CtaActionType.Dialer)">Dialer</option>
+                <option value="@CtaActionType.Calendar" selected="@(Model.ActionType == CtaActionType.Calendar)">Calendar</option>
+                <option value="@CtaActionType.Location" selected="@(Model.ActionType == CtaActionType.Location)">Location</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="Ctas_@(index)__Value">Value</label>
+            <input id="Ctas_@(index)__Value" name="Ctas[@index].Value" value="@Model.Value" class="form-control" placeholder="https://..." />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="Ctas_@(index)__PostBackData">Postback</label>
+            <input id="Ctas_@(index)__PostBackData" name="Ctas[@index].PostBackData" value="@Model.PostBackData" class="form-control" />
+        </div>
+    </div>
+</div>

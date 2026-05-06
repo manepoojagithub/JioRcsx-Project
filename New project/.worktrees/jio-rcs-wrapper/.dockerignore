@@ -1,0 +1,9 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/TestResults
+**/*.user
+app-*.log
+src/JioCxRcsWrapper.Web/wwwroot/uploads/*
+deploy/publish

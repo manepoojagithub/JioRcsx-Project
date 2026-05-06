@@ -1,0 +1,28 @@
+@inject JioCxRcsWrapper.Web.Services.PermissionUiService PermissionUi
+
+<nav class="d-flex flex-column gap-2">
+    @if (await PermissionUi.CanViewAsync("Dashboard"))
+    {
+        <a asp-controller="Dashboard" asp-action="Index"><span class="nav-icon">D</span><span class="nav-label">Dashboard</span></a>
+    }
+    @if (await PermissionUi.CanViewAsync("Clients"))
+    {
+        <a asp-controller="Clients" asp-action="Index"><span class="nav-icon">C</span><span class="nav-label">Clients</span></a>
+    }
+    @if (await PermissionUi.CanViewAsync("Users"))
+    {
+        <a asp-controller="Users" asp-action="Index"><span class="nav-icon">U</span><span class="nav-label">User Management</span></a>
+    }
+    @if (await PermissionUi.CanViewAsync("Campaigns"))
+    {
+        <a asp-controller="Campaigns" asp-action="Index"><span class="nav-icon">G</span><span class="nav-label">Campaigns</span></a>
+    }
+    @if (await PermissionUi.CanViewAsync("MessageBuilder"))
+    {
+        <a asp-controller="MessageBuilder" asp-action="Index"><span class="nav-icon">M</span><span class="nav-label">Message Builder</span></a>
+    }
+    @if (await PermissionUi.CanViewAsync("Reports"))
+    {
+        <a asp-controller="Reports" asp-action="Index"><span class="nav-icon">R</span><span class="nav-label">Reports</span></a>
+    }
+</nav>

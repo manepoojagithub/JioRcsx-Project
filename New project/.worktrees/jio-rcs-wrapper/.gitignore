@@ -1,0 +1,9 @@
+.vs/
+.worktrees/
+bin/
+obj/
+**/bin/
+**/obj/
+*.csproj.user
+src/JioCxRcsWrapper.Web/wwwroot/uploads/
+.env.production

@@ -1,0 +1,71 @@
+@model JioCxRcsWrapper.Application.Common.Pagination.PagedResult<JioCxRcsWrapper.Application.Reports.CampaignReportSummary>
+@inject JioCxRcsWrapper.Web.Services.PermissionUiService PermissionUi
+@{
+    ViewData["Title"] = "Reports";
+    var canDownload = await PermissionUi.CanAsync("Reports", "Download");
+}
+
+<section class="page-hero report-hero">
+    <div>
+        <div class="page-eyebrow">Analytics</div>
+        <h1>Reports</h1>
+        <p>Campaign delivery, failures, and downloadable report exports.</p>
+    </div>
+</section>
+
+<section class="metric-strip">
+    <article class="metric-tile"><span>Total Sent</span><strong>@ViewBag.TotalSent</strong></article>
+    <article class="metric-tile"><span>Delivered</span><strong>@ViewBag.Delivered</strong></article>
+    <article class="metric-tile"><span>Failed</span><strong>@ViewBag.Failed</strong></article>
+    <article class="metric-tile"><span>Campaigns</span><strong>@ViewBag.CampaignCount</strong></article>
+</section>
+
+<section class="panel-card">
+    <div class="panel-card-header">
+        <div>
+            <h2>Campaign Reports</h2>
+            <p>Open details or export CSV/PDF for each campaign.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table panel-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>
+                    Campaign
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="CampaignName" value="@ViewContext.HttpContext.Request.Query["CampaignName"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Client
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter..." />
+                </th>
+                <th>Sent</th>
+                <th>Delivered</th>
+                <th>Failed</th>
+                <th class="text-end action-cell">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var report in Model.Items)
+            {
+                <tr>
+                    <td class="fw-semibold">@report.CampaignName</td>
+                    <td>@report.ClientName</td>
+                    <td>@report.TotalSent</td>
+                    <td><span class="status-pill status-active">@report.Delivered</span></td>
+                    <td><span class="status-pill @(report.Failed > 0 ? "status-failed" : "status-draft")">@report.Failed</span></td>
+                    <td class="text-end action-cell">
+                        <a asp-action="Details" asp-route-id="@report.CampaignId" class="btn btn-sm btn-outline-primary">View</a>
+                        @if (canDownload)
+                        {
+                            <a asp-action="ExportCsv" asp-route-id="@report.CampaignId" class="btn btn-sm btn-outline-secondary">CSV</a>
+                            <a asp-action="ExportPdf" asp-route-id="@report.CampaignId" class="btn btn-sm btn-outline-secondary">PDF</a>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model" />
+</section>

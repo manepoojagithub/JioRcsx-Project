@@ -1,0 +1,97 @@
+@model JioCxRcsWrapper.Web.Models.Users.CreateUserViewModel
+@{
+    ViewData["Title"] = "Create User";
+}
+
+<section class="page-hero panel-hero">
+    <div>
+        <div class="page-eyebrow">User Management</div>
+        <h1>Create User</h1>
+        <p>Add a panel user, assign role/menu permissions through the role, and map the user to a client.</p>
+    </div>
+</section>
+
+<form asp-action="Create" method="post" class="panel-form user-create-form">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="user-create-grid">
+        <section class="panel-card form-section">
+            <div class="panel-card-header">
+                <div>
+                    <h2>Profile</h2>
+                    <p>Basic identity used for login and audit logs.</p>
+                </div>
+                <span class="section-count">01</span>
+            </div>
+            <div class="form-grid">
+                <div>
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                <div>
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+                <div>
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel-card form-section">
+            <div class="panel-card-header">
+                <div>
+                    <h2>Access</h2>
+                    <p>Role controls menu-wise permissions; client limits tenant data visibility.</p>
+                </div>
+                <span class="section-count">02</span>
+            </div>
+            <div class="form-grid">
+                <div>
+                    <label asp-for="RoleId" class="form-label">Role</label>
+                    <select asp-for="RoleId" asp-items="ViewBag.Roles" class="form-select"></select>
+                </div>
+                <div>
+                    <label asp-for="ClientId" class="form-label">Client</label>
+                    <select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select"></select>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel-card form-section user-controls-panel">
+            <div class="panel-card-header">
+                <div>
+                    <h2>Status</h2>
+                    <p>Control whether this user can access the panel.</p>
+                </div>
+                <span class="section-count">03</span>
+            </div>
+            <div class="form-grid">
+                <div class="user-active-box">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label"></label>
+                    <span>Inactive users cannot access the panel.</span>
+                </div>
+                <div class="user-active-box">
+                    <input asp-for="IsDeveloper" class="form-check-input" />
+                    <label asp-for="IsDeveloper" class="form-check-label">IsDeveloper</label>
+                    <span>Developer users can view report API diagnostics.</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary panel-primary-btn">Create User</button>
+        <a asp-action="Index" class="btn btn-light panel-soft-btn">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

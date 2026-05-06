@@ -1,0 +1,145 @@
+@model JioCxRcsWrapper.Application.Common.Pagination.PagedResult<JioCxRcsWrapper.Application.Campaigns.CampaignSummary>
+@using JioCxRcsWrapper.Application.Common
+@inject JioCxRcsWrapper.Web.Services.PermissionUiService PermissionUi
+@inject JioCxRcsWrapper.Application.Security.ICurrentUser CurrentUser
+@{
+    ViewData["Title"] = "Campaigns";
+    var canAdd = await PermissionUi.CanAsync("Campaigns", "Add");
+    var canUpdate = await PermissionUi.CanAsync("Campaigns", "Update");
+    var canDelete = await PermissionUi.CanAsync("Campaigns", "Delete");
+    var canDownload = await PermissionUi.CanAsync("Campaigns", "Download");
+    var isAdmin = string.Equals(CurrentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+}
+
+<section class="page-hero dark-hero">
+    <div>
+        <div class="page-eyebrow">Campaign Operations</div>
+        <h1>Campaign List</h1>
+        <p>Create campaigns, upload CSV contacts, and queue sends from one operational view.</p>
+    </div>
+    <div class="hero-actions">
+        @if (canDownload)
+        {
+            <a asp-action="DownloadCsvTemplate" class="btn btn-light panel-soft-btn">Download CSV Template</a>
+        }
+        @if (canAdd)
+        {
+            <a asp-action="Create" class="btn btn-primary panel-primary-btn">Create Campaign</a>
+        }
+    </div>
+</section>
+
+<section class="metric-strip">
+    <article class="metric-tile"><span>Total</span><strong>@ViewBag.TotalCampaigns</strong></article>
+    <article class="metric-tile"><span>Contacts</span><strong>@ViewBag.TotalContacts</strong></article>
+    <article class="metric-tile"><span>Queued</span><strong>@ViewBag.QueuedCampaigns</strong></article>
+    <article class="metric-tile"><span>Scheduled</span><strong>@ViewBag.ScheduledCampaigns</strong></article>
+</section>
+
+<div id="campaign-errors" class="alert alert-danger d-none"></div>
+<div id="campaign-success" class="alert alert-success d-none"></div>
+
+<section class="panel-card">
+    <div class="panel-card-header">
+        <div>
+            <h2>Campaign Queue</h2>
+            <p>Upload CSV contacts, then queue the campaign for processing.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table panel-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>
+                    Name
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Client
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Type
+                    <select class="form-select form-select-sm grid-filter-select" data-column="Type">
+                        <option value="">All</option>
+                        @foreach (var type in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.CampaignType>())
+                        {
+                            <option value="@type" selected="@(ViewContext.HttpContext.Request.Query["Type"] == type.ToString())">@type</option>
+                        }
+                    </select>
+                </th>
+                <th>
+                    Status
+                    <select class="form-select form-select-sm grid-filter-select" data-column="Status">
+                        <option value="">All</option>
+                        @foreach (var status in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.CampaignStatus>())
+                        {
+                            <option value="@status" selected="@(ViewContext.HttpContext.Request.Query["Status"] == status.ToString())">@status</option>
+                        }
+                    </select>
+                </th>
+                <th>Contacts</th>
+                <th>Queue Status</th>
+                <th>Scheduled</th>
+                <th class="text-end action-cell">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var campaign in Model.Items)
+            {
+                <tr>
+                    <td class="fw-semibold">@campaign.Name</td>
+                    <td>@campaign.ClientName</td>
+                    <td>@campaign.Type</td>
+                    <td><span class="status-pill status-scheduled">@StatusLabels.For(campaign.Status)</span></td>
+                    <td>@campaign.ContactCount</td>
+                    <td><span class="status-pill status-active">@campaign.QueueStatus</span></td>
+                    <td>@(campaign.ScheduledAt?.ToLocalTime().ToString("g") ?? "-")</td>
+                    <td class="text-end action-cell">
+                        <div class="action-stack">
+                        @if (canAdd && !campaign.IsDisabled)
+                        {
+                            <form class="d-inline-flex align-items-center gap-2 campaign-upload-form" asp-action="UploadContacts" method="post" enctype="multipart/form-data">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="CampaignId" value="@campaign.Id" />
+                                <input class="form-control form-control-sm campaign-file-input" type="file" name="CsvFile" accept=".csv,text/csv" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Upload</button>
+                            </form>
+                        }
+                        @if (canUpdate && !campaign.IsDisabled)
+                        {
+                            <form class="d-inline-block campaign-queue-form" asp-action="Queue" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="campaignId" value="@campaign.Id" />
+                                <button type="submit" class="btn btn-sm btn-primary">Queue</button>
+                            </form>
+                        }
+                        @if (isAdmin && canUpdate && !campaign.IsDisabled)
+                        {
+                            <form class="d-inline-block campaign-command-form" asp-action="Disable" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="campaignId" value="@campaign.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-warning">Disable</button>
+                            </form>
+                        }
+                        @if (isAdmin && canDelete)
+                        {
+                            <form class="d-inline-block campaign-command-form" asp-action="Delete" method="post" data-confirm="Delete this campaign?">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="campaignId" value="@campaign.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        }
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model" />
+</section>
+
+@section Scripts {
+    <script src="~/js/campaigns.js" asp-append-version="true"></script>
+}

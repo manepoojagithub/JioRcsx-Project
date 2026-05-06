@@ -1,0 +1,115 @@
+@model JioCxRcsWrapper.Application.Permissions.RolePermissionEditor
+@{
+    ViewData["Title"] = "Role Permissions";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">Role Permissions</h1>
+        <p class="text-muted mb-0">Control menu visibility and actions for each role.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<form asp-action="Permissions" method="get" class="card mb-3">
+    <div class="card-body row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Role</label>
+            <select name="roleId" class="form-select" asp-items="ViewBag.Roles"></select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-primary">Load</button>
+        </div>
+    </div>
+</form>
+
+<form asp-action="Permissions" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="roleId" value="@Model.RoleId" />
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Menu permissions for @Model.RoleName</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="select-view-menus">Select All Menus</button>
+        </div>
+        <div class="card-body border-bottom">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="isDeveloper" name="isDeveloper" value="true" checked="@Model.IsDeveloper" />
+                <label class="form-check-label fw-semibold" for="isDeveloper">IsDeveloper</label>
+                <div class="form-text">Allows this role to see Last Error, Exact Error, and API Request / Response in report details and CSV exports.</div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                <tr>
+                    <th style="min-width: 260px;">Menu</th>
+                    <th style="min-width: 180px;">Route</th>
+                    @foreach (var permission in Model.Modules.First().Items)
+                    {
+                        <th>@permission.PermissionName</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var module in Model.Modules)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@module.MenuName</div>
+                            <div class="small text-muted">@module.Description</div>
+                        </td>
+                        <td>
+                            <code>@module.Controller/@module.Action</code>
+                        </td>
+                        @foreach (var permission in module.Items)
+                        {
+                            <td>
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="selectedPermissions[@module.Module]"
+                                       value="@permission.PermissionId"
+                                       checked="@permission.IsSelected"
+                                       data-menu="@module.Module"
+                                       data-permission="@permission.PermissionName" />
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">Save Permissions</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (() => {
+            const checkboxes = Array.from(document.querySelectorAll("[data-menu][data-permission]"));
+            const byMenu = menu => checkboxes.filter(item => item.dataset.menu === menu);
+
+            checkboxes.forEach(item => {
+                item.addEventListener("change", () => {
+                    const rowItems = byMenu(item.dataset.menu);
+                    const view = rowItems.find(value => value.dataset.permission === "View");
+
+                    if (item.dataset.permission !== "View" && item.checked && view) {
+                        view.checked = true;
+                    }
+
+                    if (item.dataset.permission === "View" && !item.checked) {
+                        rowItems.forEach(value => value.checked = false);
+                    }
+                });
+            });
+
+            document.getElementById("select-view-menus")?.addEventListener("click", () => {
+                checkboxes
+                    .filter(item => item.dataset.permission === "View")
+                    .forEach(item => item.checked = true);
+            });
+        })();
+    </script>
+}

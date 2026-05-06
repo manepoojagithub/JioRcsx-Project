@@ -1,0 +1,111 @@
+@model JioCxRcsWrapper.Application.Common.Pagination.PagedResult<JioCxRcsWrapper.Application.Reports.ContactReportRow>
+@using JioCxRcsWrapper.Application.Common
+@inject JioCxRcsWrapper.Web.Services.PermissionUiService PermissionUi
+@{
+    ViewData["Title"] = "Report Details";
+    var campaignId = (int)(ViewData["CampaignId"] ?? 0);
+    var canDownload = await PermissionUi.CanAsync("Reports", "Download");
+    var isDeveloper = PermissionUi.IsDeveloper;
+}
+
+<section class="page-hero report-hero">
+    <div>
+        <div class="page-eyebrow">Delivery Detail</div>
+        <h1>Report Details</h1>
+        <p>Mobile status, user actions, and latest delivery error context.</p>
+    </div>
+    @if (canDownload)
+    {
+        <div class="hero-actions">
+            <a asp-action="ExportCsv" asp-route-id="@campaignId" class="btn btn-light panel-soft-btn">CSV</a>
+            <a asp-action="ExportPdf" asp-route-id="@campaignId" class="btn btn-primary panel-primary-btn">PDF</a>
+        </div>
+    }
+</section>
+
+<section class="metric-strip">
+    <article class="metric-tile"><span>Contacts</span><strong>@ViewBag.TotalContacts</strong></article>
+    <article class="metric-tile"><span>Opened</span><strong>@ViewBag.Opened</strong></article>
+    <article class="metric-tile"><span>Clicked</span><strong>@ViewBag.Clicked</strong></article>
+    <article class="metric-tile"><span>Errors</span><strong>@ViewBag.Errors</strong></article>
+</section>
+
+<section class="panel-card">
+    <div class="panel-card-header">
+        <div>
+            <h2>Contact Activity</h2>
+            <p>Delivery and interaction rows received from internal logs/webhooks.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table panel-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>
+                    Mobile Number
+                    <input type="text" class="form-control form-control-sm grid-filter" data-column="MobileNumber" value="@ViewContext.HttpContext.Request.Query["MobileNumber"]" placeholder="Filter..." />
+                </th>
+                <th>
+                    Status
+                    <select class="form-select form-select-sm grid-filter-select" data-column="Status">
+                        <option value="">All</option>
+                        @foreach (var status in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.ContactStatus>())
+                        {
+                            <option value="@status" selected="@(ViewContext.HttpContext.Request.Query["Status"] == status.ToString())">@status</option>
+                        }
+                    </select>
+                </th>
+                <th>Opened</th>
+                <th>Clicked</th>
+                @if (isDeveloper)
+                {
+                    <th>Last Error</th>
+                    <th>Exact Error</th>
+                    <th>API Request / Response</th>
+                }
+                <th>Last Updated</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Model.Items)
+            {
+                <tr>
+                    <td class="fw-semibold">@row.MobileNumber</td>
+                    <td><span class="status-pill status-scheduled">@StatusLabels.For(row.Status)</span></td>
+                    <td>@(row.Opened ? "Yes" : "No")</td>
+                    <td>@(row.Clicked ? "Yes" : "No")</td>
+                    @if (isDeveloper)
+                    {
+                        <td>@(row.LastError ?? "-")</td>
+                        <td class="text-break">@(row.ErrorMessage ?? "-")</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(row.RequestHeaders) ||
+                                 !string.IsNullOrWhiteSpace(row.RequestPayload) ||
+                                 !string.IsNullOrWhiteSpace(row.ResponseBody))
+                            {
+                                <details class="report-api-details">
+                                    <summary>View</summary>
+                                    <div class="report-api-block">
+                                        <strong>Headers</strong>
+                                        <pre>@(row.RequestHeaders ?? "-")</pre>
+                                        <strong>Payload</strong>
+                                        <pre>@(row.RequestPayload ?? "-")</pre>
+                                        <strong>Response (@(row.ResponseStatusCode ?? "-"))</strong>
+                                        <pre>@(row.ResponseBody ?? "-")</pre>
+                                    </div>
+                                </details>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </td>
+                    }
+                    <td>@(row.LastUpdated?.ToLocalTime().ToString("g") ?? "-")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model" />
+</section>

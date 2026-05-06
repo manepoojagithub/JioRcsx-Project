@@ -1,0 +1,82 @@
+@model JioCxRcsWrapper.Application.Common.Pagination.IPagedResult
+@using Microsoft.AspNetCore.WebUtilities
+
+@functions {
+    private string PageUrl(int pageNumber)
+    {
+        var request = ViewContext.HttpContext.Request;
+        var query = request.Query
+            .Where(item => !string.Equals(item.Key, "pageNumber", StringComparison.OrdinalIgnoreCase))
+            .Where(item => !string.Equals(item.Key, "pageSize", StringComparison.OrdinalIgnoreCase))
+            .SelectMany(item => item.Value.Select(value => new KeyValuePair<string, string?>(item.Key, value)))
+            .ToList();
+
+        query.Add(new KeyValuePair<string, string?>("pageNumber", pageNumber.ToString()));
+        query.Add(new KeyValuePair<string, string?>("pageSize", Model.PageSize.ToString()));
+        return QueryHelpers.AddQueryString(request.Path, query);
+    }
+}
+
+@if (Model.TotalItems > 0)
+{
+    var start = ((Model.PageNumber - 1) * Model.PageSize) + 1;
+    var end = Math.Min(Model.PageNumber * Model.PageSize, Model.TotalItems);
+    var firstPage = Math.Max(1, Model.PageNumber - 2);
+    var lastPage = Math.Min(Model.TotalPages, Model.PageNumber + 2);
+
+    <div class="app-pagination">
+        <div class="app-pagination-summary">
+            <span>Showing</span>
+            <strong>@start-@end</strong>
+            <span>of @Model.TotalItems records</span>
+        </div>
+        <nav class="app-pagination-nav" aria-label="Pagination">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(Model.HasPreviousPage ? string.Empty : "disabled")">
+                    <a class="page-link" href="@(Model.HasPreviousPage ? PageUrl(Model.PageNumber - 1) : "#")">Prev</a>
+                </li>
+                @if (firstPage > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@PageUrl(1)">1</a>
+                    </li>
+                    @if (firstPage > 2)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    }
+                }
+                @for (var pageIndex = firstPage; pageIndex <= lastPage; pageIndex++)
+                {
+                    <li class="page-item @(pageIndex == Model.PageNumber ? "active" : string.Empty)">
+                        <a class="page-link" href="@PageUrl(pageIndex)">@pageIndex</a>
+                    </li>
+                }
+                @if (lastPage < Model.TotalPages)
+                {
+                    @if (lastPage < Model.TotalPages - 1)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    }
+                    <li class="page-item">
+                        <a class="page-link" href="@PageUrl(Model.TotalPages)">@Model.TotalPages</a>
+                    </li>
+                }
+                <li class="page-item @(Model.HasNextPage ? string.Empty : "disabled")">
+                    <a class="page-link" href="@(Model.HasNextPage ? PageUrl(Model.PageNumber + 1) : "#")">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+}
+else
+{
+    <div class="app-pagination">
+        <div class="app-pagination-summary">
+            <span>No records found</span>
+        </div>
+    </div>
+}
