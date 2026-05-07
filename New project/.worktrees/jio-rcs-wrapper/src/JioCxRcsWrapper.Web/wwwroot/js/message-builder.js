@@ -27,7 +27,7 @@
     function syncRichEditors() {
         $(".rich-editor").each(function () {
             const target = $(this).data("hidden-target");
-            $(`#${target}`).val($(this).text().trim());
+            $(`#${target}`).val($(this).html().trim());
         });
     }
 
@@ -99,8 +99,9 @@
     }
 
     function updateVisualPreview() {
-        $("#preview-title").text($("#Title").val() || "");
+        $("#preview-title").html($("[data-hidden-target='Title']").html() || "");
         $("#preview-description").html($("[data-hidden-target='Description']").html() || "");
+        $("#preview-footer").html($("[data-hidden-target='Footer']").html() || "");
         $("#preview-plain").html($("[data-hidden-target='Text']").html() || "");
 
         const file = $("#MediaFile")[0] && $("#MediaFile")[0].files[0];
@@ -160,8 +161,12 @@
         clearTransientErrors();
     });
 
-    form.on("submit", function (event) {
+    form.on("click", "#preview-payload-btn", function (event) {
         event.preventDefault();
+        const btn = $(this);
+        if (btn.data("busy")) return;
+        
+        btn.data("busy", true).text("Processing...");
         syncRichEditors();
         errors.addClass("d-none").empty();
         errors.removeClass("alert-success").addClass("alert-danger");
@@ -176,9 +181,11 @@
             success: function (response) {
                 const parsed = JSON.parse(response.payloadJson);
                 preview.text(JSON.stringify(parsed, null, 2));
+                btn.data("busy", false).text("Preview Payload");
             },
             error: function (xhr) {
                 showErrors(extractAjaxErrors(xhr, "Unable to build payload."));
+                btn.data("busy", false).text("Preview Payload");
             }
         });
     });

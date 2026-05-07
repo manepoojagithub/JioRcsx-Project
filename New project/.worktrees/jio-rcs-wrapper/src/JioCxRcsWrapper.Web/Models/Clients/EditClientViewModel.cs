@@ -29,4 +29,9 @@ public sealed class EditClientViewModel
     public int CreditCostPerMessage { get; set; } = 1;
     [Range(0, int.MaxValue)]
     public int LowCreditThreshold { get; set; } = 10;
+
+    [EmailAddress]
+    public string? ManagerEmail { get; set; }
+
+    public bool WebhookAuditEnabled { get; set; }
 }

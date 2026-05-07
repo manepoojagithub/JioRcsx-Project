@@ -45,35 +45,17 @@
         <table class="table panel-table align-middle mb-0">
             <thead>
             <tr>
-                <th>
-                    Name
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter..." />
-                </th>
-                <th>
-                    Type
-                    <select class="form-select form-select-sm grid-filter-select" data-column="MessageType">
-                        <option value="">All</option>
-                        @foreach (var type in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.MessageType>())
-                        {
-                            <option value="@type" selected="@(ViewContext.HttpContext.Request.Query["MessageType"] == type.ToString())">@type</option>
-                        }
-                    </select>
-                </th>
-                <th>
-                    Client
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter..." />
-                </th>
-                <th>Local Preview</th>
-                <th>JioCX URL</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Client</th>
+                <th>Preview</th>
                 <th class="text-end action-cell">Actions</th>
             </tr>
             </thead>
             <tbody>
             @foreach (var template in Model.Items)
             {
-                var previewUrl = !string.IsNullOrWhiteSpace(template.RcsMediaUrl)
-                    ? template.RcsMediaUrl
-                    : template.LocalMediaPath;
+                var previewUrl = template.LocalMediaPath;
                 <tr>
                     <td class="fw-semibold">@template.Name</td>
                     <td><span class="status-pill status-scheduled">@template.MessageType</span></td>
@@ -81,14 +63,15 @@
                     <td>
                         @if (!string.IsNullOrWhiteSpace(previewUrl))
                         {
-                            <a href="@previewUrl" target="_blank" class="dashboard-view-link">Preview</a>
+                            <a href="@previewUrl" target="_blank" class="btn btn-sm btn-outline-info" title="Preview Media">
+                                <i class="bi bi-image"></i>
+                            </a>
                         }
                         else
                         {
-                            <span>-</span>
+                            <span class="text-muted small">No Media</span>
                         }
                     </td>
-                    <td class="text-break small">@(template.RcsMediaUrl ?? "-")</td>
                     <td class="text-end action-cell">
                         <div class="action-stack">
                         @if (canUpdate)

@@ -1,0 +1,54 @@
+@model IReadOnlyList<JioCxRcsWrapper.Application.Users.UserCreditHistorySummary>
+@{
+    ViewData["Title"] = "Credit History - " + ViewBag.UserName;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Credit History</h1>
+        <p class="text-muted mb-0">Balance changes for <strong>@ViewBag.UserName</strong></p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to Users</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Previous</th>
+                    <th>New Balance</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("g")</td>
+                        <td>
+                            <span class="badge @(item.TransactionType == "Added" ? "bg-success" : item.TransactionType == "Spent" ? "bg-info" : "bg-danger")">
+                                @item.TransactionType
+                            </span>
+                        </td>
+                        <td class="fw-bold @(item.Amount > 0 ? "text-success" : "text-danger")">
+                            @(item.Amount > 0 ? "+" : "")@item.Amount
+                        </td>
+                        <td class="text-muted">@item.PreviousBalance</td>
+                        <td class="fw-bold">@item.NewBalance</td>
+                        <td><small>@item.Reason</small></td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No credit history found for this user.</td> 
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

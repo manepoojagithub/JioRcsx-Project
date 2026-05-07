@@ -57,7 +57,13 @@
             <div class="builder-form-grid">
                 <div>
                     <label asp-for="Title" class="form-label"></label>
-                    <input asp-for="Title" class="form-control" maxlength="80" />
+                    <div class="rich-toolbar" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rich-command="bold"><strong>B</strong></button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rich-command="italic"><em>I</em></button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rich-command="underline"><u>U</u></button>
+                    </div>
+                    <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Title" style="height: 60px;"></div>
+                    <textarea asp-for="Title" class="d-none"></textarea>
                     <div class="form-text"><span data-count-for="Title">0</span>/80</div>
                 </div>
                 <div>
@@ -79,6 +85,18 @@
             <textarea asp-for="Description" class="d-none"></textarea>
             <div class="form-text"><span data-count-for="Description">0</span>/2000</div>
 
+            <label asp-for="Footer" class="form-label"></label>
+            <div class="rich-toolbar" role="group">
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="bold"><strong>B</strong></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="italic"><em>I</em></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="underline"><u>U</u></button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyLeft">Left</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyCenter">Center</button>
+                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyRight">Right</button>
+            </div>
+            <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Footer" style="height: 80px;"></div>
+            <textarea asp-for="Footer" class="d-none"></textarea>
+
             <input asp-for="MediaUrl" type="hidden" />
             <input asp-for="ThumbnailUrl" type="hidden" />
             <input asp-for="LocalMediaPath" type="hidden" />
@@ -91,7 +109,7 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary panel-primary-btn">Preview Payload</button>
+            <button type="button" id="preview-payload-btn" class="btn btn-primary panel-primary-btn">Preview Payload</button>
             <button type="button" id="save-template" class="btn btn-success">Save Template</button>
             <button type="button" id="clear-builder" class="btn btn-light panel-soft-btn">Clear</button>
         </div>
@@ -105,6 +123,7 @@
                 <div id="preview-title" class="fw-semibold"></div>
                 <div id="preview-description" class="text-muted mb-2"></div>
                 <div id="preview-media"></div>
+                <div id="preview-footer" class="text-muted small mt-2"></div>
                 <div id="preview-plain" class="mt-2"></div>
             </div>
         </div>

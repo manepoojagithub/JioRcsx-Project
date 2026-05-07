@@ -20,25 +20,48 @@
     <article class="metric-tile"><span>Campaigns</span><strong>@ViewBag.CampaignCount</strong></article>
 </section>
 
-<section class="panel-card">
+<section class="panel-card mb-4">
     <div class="panel-card-header">
+        <div>
+            <h2>Filters</h2>
+            <p>Filter reports by campaign or client name.</p>
+        </div>
+    </div>
+    <div class="p-4">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Campaign Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="CampaignName" value="@ViewContext.HttpContext.Request.Query["CampaignName"]" placeholder="Filter by campaign..." />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Client Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter by client..." />
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="panel-card-header d-flex justify-content-between align-items-center">
         <div>
             <h2>Campaign Reports</h2>
             <p>Open details or export CSV/PDF for each campaign.</p>
         </div>
+        @if (canDownload)
+        {
+            <button type="button" id="bulk-download-btn" class="btn btn-sm btn-primary">Download Selected (CSV)</button>
+        }
     </div>
     <div class="table-responsive">
         <table class="table panel-table align-middle mb-0">
             <thead>
             <tr>
-                <th>
-                    Campaign
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="CampaignName" value="@ViewContext.HttpContext.Request.Query["CampaignName"]" placeholder="Filter..." />
-                </th>
-                <th>
-                    Client
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter..." />
-                </th>
+                @if (canDownload)
+                {
+                    <th><input type="checkbox" id="select-all-reports" /></th>
+                }
+                <th>Campaign</th>
+                <th>Client</th>
                 <th>Sent</th>
                 <th>Delivered</th>
                 <th>Failed</th>
@@ -49,6 +72,10 @@
             @foreach (var report in Model.Items)
             {
                 <tr>
+                    @if (canDownload)
+                    {
+                        <td><input type="checkbox" class="report-checkbox" data-id="@report.CampaignId" /></td>
+                    }
                     <td class="fw-semibold">@report.CampaignName</td>
                     <td>@report.ClientName</td>
                     <td>@report.TotalSent</td>
@@ -69,3 +96,7 @@
     </div>
     <partial name="_Pager" model="Model" />
 </section>
+
+@section Scripts {
+    <script src="~/js/reports.js" asp-append-version="true"></script>
+}

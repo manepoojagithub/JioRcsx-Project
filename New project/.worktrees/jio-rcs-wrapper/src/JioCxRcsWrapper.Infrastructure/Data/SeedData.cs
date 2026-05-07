@@ -18,7 +18,8 @@ public static class SeedData
             new Permission { Id = 3, Name = "Update" },
             new Permission { Id = 4, Name = "Delete" },
             new Permission { Id = 5, Name = "Download" },
-            new Permission { Id = 6, Name = "Disable" });
+            new Permission { Id = 6, Name = "Disable" },
+            new Permission { Id = 7, Name = "Retry" });
 
         modelBuilder.Entity<User>().HasData(new User
         {
@@ -71,6 +72,12 @@ public static class SeedData
 
         rolePermissions.Add(new RolePermission { Id = id++, RoleId = 3, PermissionId = 1, Module = "MessageBuilder" });
         rolePermissions.Add(new RolePermission { Id = id++, RoleId = 1, PermissionId = 6, Module = "Users" });
+
+        // Campaign extra permissions
+        rolePermissions.Add(new RolePermission { Id = id++, RoleId = 1, PermissionId = 6, Module = "Campaigns" });
+        rolePermissions.Add(new RolePermission { Id = id++, RoleId = 1, PermissionId = 7, Module = "Campaigns" });
+        rolePermissions.Add(new RolePermission { Id = id++, RoleId = 2, PermissionId = 6, Module = "Campaigns" });
+        rolePermissions.Add(new RolePermission { Id = id++, RoleId = 2, PermissionId = 7, Module = "Campaigns" });
 
         modelBuilder.Entity<RolePermission>().HasData(rolePermissions);
     }

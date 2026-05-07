@@ -257,6 +257,7 @@ public sealed class MessageBuilderController : Controller
             ? _payloadService.BuildRichCard(new RichCardDraft(
                 model.Title,
                 model.Description,
+                model.Footer,
                 model.MediaUrl,
                 model.ThumbnailUrl,
                 model.Ctas.Select(cta => new CtaDraft(cta.Text, cta.ActionType, cta.Value, cta.PostBackData)).ToArray()))
@@ -401,6 +402,10 @@ public sealed class MessageBuilderController : Controller
 
             model.Title = cardContent.GetProperty("cardTitle").GetString();
             model.Description = cardContent.GetProperty("cardDescription").GetString();
+            if (cardContent.TryGetProperty("cardFooter", out var footer))
+            {
+                model.Footer = footer.GetString();
+            }
             if (cardContent.TryGetProperty("cardMedia", out var media) &&
                 media.TryGetProperty("contentInfo", out var contentInfo) &&
                 contentInfo.TryGetProperty("fileUrl", out var fileUrl))

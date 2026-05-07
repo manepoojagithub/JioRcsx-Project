@@ -15,7 +15,7 @@ public sealed record MessageTemplateFilter(string? Name = null, MessageType? Mes
 public interface IMessageTemplateService
 {
     Task<IReadOnlyList<MessageTemplateSummary>> ListAsync(MessageTemplateFilter? filter = null, CancellationToken cancellationToken = default);
-...
+
     Task<int> CreateAsync(CreateMessageTemplateRequest request, CancellationToken cancellationToken = default);
 
     Task<MessageTemplateEditor?> GetForEditAsync(int id, CancellationToken cancellationToken = default);

@@ -98,7 +98,9 @@ public sealed class ClientsController : Controller
             LogoPath = client.LogoPath,
             Credits = client.Credits,
             CreditCostPerMessage = client.CreditCostPerMessage,
-            LowCreditThreshold = client.LowCreditThreshold
+            LowCreditThreshold = client.LowCreditThreshold,
+            ManagerEmail = client.ManagerEmail,
+            WebhookAuditEnabled = client.WebhookAuditEnabled
         });
     }
 
@@ -130,7 +132,9 @@ public sealed class ClientsController : Controller
                 logoPath,
                 model.Credits,
                 model.CreditCostPerMessage,
-                model.LowCreditThreshold), cancellationToken);
+                model.LowCreditThreshold,
+                model.ManagerEmail,
+                model.WebhookAuditEnabled), cancellationToken);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {

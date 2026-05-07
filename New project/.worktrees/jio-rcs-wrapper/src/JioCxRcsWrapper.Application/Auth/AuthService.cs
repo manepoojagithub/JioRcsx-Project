@@ -47,6 +47,27 @@ public sealed class AuthService : IAuthService
         return Task.FromResult(new LoginResult(true, null, user.Id, user.Name, role, user.ClientId, isDeveloper, token));
     }
 
+    public async Task<UserDetails?> GetUserByIdAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId, cancellationToken);
+        if (user == null) return null;
+
+        var role = user.Role?.Name ?? _unitOfWork.Repository<Role>().Query().FirstOrDefault(x => x.Id == user.RoleId)?.Name ?? "User";
+        return new UserDetails(user.Id, user.Name, user.Email, role, user.ClientId);
+    }
+
+    public async Task<AuthOperationResult> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId, cancellationToken);
+        if (user == null) return new AuthOperationResult(false, "User not found.");
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+        _unitOfWork.Repository<User>().Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new AuthOperationResult(true, null);
+    }
+
     private static LoginResult Failed() =>
         new(false, "Invalid email or password.", null, null, null, null, false, null);
 }

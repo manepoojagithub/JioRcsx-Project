@@ -1,0 +1,300 @@
+# 📄 Campaign & Messaging System – Requirements Document
+
+## 🔹 1. Grid & Filters
+
+* Add column-level filters for **all records (not just paginated/10 records)**.
+* Remove duplicate filter fields and retain only the working one.
+* Later update: **Remove grid-level filters entirely** (filters exist outside already).
+
+---
+
+## 🔹 2. Credits Management
+
+* Validate credits **client-wise before processing queue**:
+
+  * Example:
+
+    * If user has 10 credits and uploads 15 contacts:
+
+      * 10 processed
+      * 5 marked as error → *"No Credits, Contact Support"*
+* If credits = 0:
+
+  * Show fixed alert banner at top.
+* If credits < 10:
+
+  * Show warning alert.
+* **Admin users:**
+
+  * No credit checks
+  * No credit alerts
+
+---
+
+## 🔹 3. Duplicate Handling
+
+### Templates
+
+* Prevent duplicate templates based on:
+
+  * Template Name
+  * Template Type (Plain / Rich Text)
+  * Client
+
+### Contacts
+
+* Handle duplicate contact numbers:
+
+  * During manual entry
+  * During Excel upload
+
+### Brand
+
+* Brand name must be **unique**
+
+### Campaign
+
+* Detect duplicates based on:
+
+  * Campaign Name
+  * Client
+  * Template
+  * Type
+  * Schedule / Recurring Time
+* If duplicate:
+
+  * Append new contacts to existing campaign
+  * Do not create a new campaign
+
+---
+
+## 🔹 4. Campaign Enhancements
+
+* Show **Template Preview beside selection**
+
+* Move UI structure:
+
+  * Card 04 → Message Preview
+  * Card 05 → Recipients
+
+* Campaign listing:
+
+  * Replace Delivered/Failed columns with:
+
+    * `X Delivered, Y Failed out of Z`
+
+* Campaign click:
+
+  * Show **readonly campaign details page**
+
+* Fix:
+
+  * "Create Campaign" not working issue
+
+---
+
+## 🔹 5. Queue Management
+
+### Requeue सिस्टम
+
+* Allow **requeue only failed records**
+* Fix issue where requeue was not triggering after credential update
+
+### Queue Status Modal
+
+* On clicking status (e.g., 3 Success, 2 Failed):
+
+  * Open modal showing:
+
+    * Success list
+    * Failed list
+  * Add:
+
+    * Filters
+    * Multi-select / Single-select / Select-all
+    * Actions:
+
+      * Delete failed
+      * Retry failed
+
+* Remove external buttons (actions only inside modal)
+
+### Deletion Logic
+
+* If all failed contacts deleted:
+
+  * Status → "Successfully Sent"
+* Else:
+
+  * Status → "Requeue Failed"
+
+### Processing Logic
+
+* If new contacts appended:
+
+  * Only process new contacts
+* Failed queue:
+
+  * Must be processed via **separate retry option**
+
+---
+
+## 🔹 6. Contacts Handling
+
+* Prevent duplicate numbers
+* Ensure clean Excel upload validation
+
+---
+
+## 🔹 7. Template Usage Restrictions
+
+* If template is used in a campaign:
+
+  * Prevent deletion
+
+---
+
+## 🔹 8. UI/UX Improvements
+
+* Improve card designs across:
+
+  * Campaign Overview
+  * Campaign Details
+  * Profile Page
+  * Other screens
+
+* Message Builder:
+
+  * Replace preview in grid with **clickable icon**
+  * Fix preview button:
+
+    * Currently stuck processing
+    * RCS preview updates but payload doesn’t
+
+---
+
+## 🔹 9. Message Builder Enhancements
+
+### Title Formatting
+
+* Bold
+* Italic
+* Underline
+* Font size increase/decrease
+* Alignment (Left, Center, Right)
+
+### Description
+
+* Rich text editor (existing)
+
+### Footer (New)
+
+* Add new textarea:
+
+  * Same features as Description
+  * Appears below image
+
+### CTA Buttons
+
+* Postback:
+
+  * Optional (not required)
+* Button alignment:
+
+  * Allow multiple buttons in same row
+
+---
+
+## 🔹 10. RCS Issues
+
+* Fix:
+
+  * RCS messages with media not processing
+
+---
+
+## 🔹 11. Permissions & Roles
+
+* Add new permissions:
+
+  * Disable Campaign
+  * Retry Failed Queue
+
+---
+
+## 🔹 12. Profile & User Management
+
+### Profile Section
+
+* Add profile option (top-right, above logout)
+* Allow:
+
+  * Password change only
+  * Force logout after password change
+
+### Admin Controls
+
+* Admin can:
+
+  * Change user email (Client menu)
+  * View user passwords (currently not visible – fix required)
+
+---
+
+## 🔹 13. Campaign Reports
+
+* Admin can:
+
+  * Download all campaign reports
+  * Download detailed reports in bulk
+
+---
+
+## 🔹 14. Webhook Logging
+
+* Add Admin flag:
+
+  * **"Webhook Audit"**
+* Log all webhook requests
+
+---
+
+## 🔹 15. Credit History
+
+* Maintain **client-wise credit history**
+
+  * Usage
+  * Deduction
+  * Balance tracking
+
+---
+
+## 🔹 16. Miscellaneous Fixes
+
+* Fix duplicate save on double-click (buttons)
+* Users card not showing data → fix
+* Campaign creation issue → fix
+
+---
+
+## 🔹 17. Queue Status Improvements
+
+* Unified status column:
+
+  * Example:
+
+    * `1 Delivered, 2 Failed out of 3`
+
+---
+
+## ✅ Summary
+
+This document includes:
+
+* Functional requirements
+* UI/UX improvements
+* Bug fixes
+* Validation rules
+* Permission handling
+* Queue & campaign logic
+* Messaging enhancements

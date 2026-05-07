@@ -697,18 +697,25 @@ pre {
 
 .rich-toolbar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 4px;
+    padding: 6px;
+    background: #f8fafc;
+    border: 1px solid rgba(16, 24, 40, .18);
+    border-bottom: 0;
+    border-radius: 10px 10px 0 0;
 }
 
-.rich-toolbar .btn {
-    min-width: 42px;
-    border-radius: 10px;
+.rich-editor {
+    border-radius: 0 0 10px 10px;
+    min-height: 100px;
+    overflow-y: auto;
+    background: #fff;
 }
 
-.builder-rich-editor {
-    min-height: 170px;
-    background: #fbfcfe;
+.rich-editor:focus {
+    outline: none;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
 }
 
 .builder-cta-header h2 {
@@ -1051,9 +1058,23 @@ pre {
     background: #feeceb;
 }
 
-.status-draft {
+.badge.bg-success-soft {
+    background-color: #e8f8ee;
+    color: #087443;
+}
+
+.badge.bg-danger-soft {
+    background-color: #feeceb;
+    color: #b42318;
+}
+
+.badge.bg-secondary-soft {
+    background-color: #f1f2f4;
     color: #6b7280;
-    background: #f1f2f4;
+}
+
+.queue-status-link:hover {
+    opacity: 0.8;
 }
 
 @media (max-width: 1180px) {

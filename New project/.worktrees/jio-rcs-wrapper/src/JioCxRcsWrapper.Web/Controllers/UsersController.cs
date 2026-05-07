@@ -144,6 +144,19 @@ public sealed class UsersController : Controller
         return RedirectToAction(nameof(Permissions), new { roleId });
     }
 
+    [HttpGet]
+    [RequirePermission("Users", "View")]
+    public async Task<IActionResult> CreditHistory(int id, CancellationToken cancellationToken)
+    {
+        var users = await _users.ListAsync(null, cancellationToken);
+        var user = users.FirstOrDefault(u => u.Id == id);
+        if (user == null) return NotFound();
+
+        var history = await _users.GetCreditHistoryAsync(id, cancellationToken);
+        ViewBag.UserName = user.Name;
+        return View(history);
+    }
+
     private async Task PopulateListsAsync(CancellationToken cancellationToken)
     {
         ViewBag.Roles = (await _users.ListRolesAsync(cancellationToken))

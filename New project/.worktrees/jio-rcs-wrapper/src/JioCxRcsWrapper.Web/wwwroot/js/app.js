@@ -44,6 +44,10 @@
     function initializeGridFilters() {
         $(".panel-table").each(function () {
             const table = $(this);
+            // If there's a filter panel on the page, don't add table-level filters
+            if (table.closest(".panel-card").parent().find(".panel-card .p-4").length > 0) {
+                return;
+            }
             const header = table.find("thead tr").first();
             if (!header.length || table.data("filters-ready")) {
                 return;

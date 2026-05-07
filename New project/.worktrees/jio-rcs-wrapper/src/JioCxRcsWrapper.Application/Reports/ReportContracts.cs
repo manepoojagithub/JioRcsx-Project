@@ -34,6 +34,8 @@ public interface IReportService
     Task<IReadOnlyList<CampaignReportSummary>> GetCampaignReportsAsync(ReportFilter? filter = null, CancellationToken cancellationToken = default);
 
     Task<ContactReportResult> GetContactReportAsync(int campaignId, ContactReportFilter? filter = null, CancellationToken cancellationToken = default);
+
+    Task<byte[]> GenerateBulkReportAsync(int[] campaignIds, CancellationToken cancellationToken = default);
 }
 
 

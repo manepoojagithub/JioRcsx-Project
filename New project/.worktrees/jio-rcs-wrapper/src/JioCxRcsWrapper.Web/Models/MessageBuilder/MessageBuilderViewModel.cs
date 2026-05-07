@@ -20,6 +20,8 @@ public sealed class MessageBuilderViewModel
 
     public string? Description { get; set; }
 
+    public string? Footer { get; set; }
+
     public string? MediaUrl { get; set; }
 
     public string? ThumbnailUrl { get; set; }

@@ -16,7 +16,7 @@ public sealed record CreateClientRequest(
 
 public sealed record ClientSummary(int Id, string BrandName, string AgentName, string AgentId, string SiteName, int Credits, int CreditCostPerMessage, int LowCreditThreshold);
 
-public sealed record ClientDetails(int Id, string BrandName, string AgentName, string AgentId, string SiteName, string? LogoPath, int Credits, int CreditCostPerMessage, int LowCreditThreshold);
+public sealed record ClientDetails(int Id, string BrandName, string AgentName, string AgentId, string SiteName, string? LogoPath, int Credits, int CreditCostPerMessage, int LowCreditThreshold, string? ManagerEmail = null, bool WebhookAuditEnabled = false);
 
 public sealed record UpdateClientRequest(
     int Id,
@@ -28,7 +28,9 @@ public sealed record UpdateClientRequest(
     string? LogoPath,
     int Credits = 100,
     int CreditCostPerMessage = 1,
-    int LowCreditThreshold = 10);
+    int LowCreditThreshold = 10,
+    string? ManagerEmail = null,
+    bool WebhookAuditEnabled = false);
 
 public sealed record BrandingResult(string SiteName, string? LogoPath);
 
@@ -43,7 +45,7 @@ public interface IClientOnboardingService
 {
     Task<int> CreateAsync(CreateClientRequest request, int adminUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ClientSummary>> ListAsync(ClientFilter? filter = null, CancellationToken cancellationToken = default);
-...
+
     Task<ClientDetails?> GetAsync(int id, CancellationToken cancellationToken = default);
     Task UpdateAsync(UpdateClientRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);

@@ -107,9 +107,10 @@ public sealed class ClientOnboardingService : IClientOnboardingService
     public async Task<ClientDetails?> GetAsync(int id, CancellationToken cancellationToken = default)
     {
         var client = await _unitOfWork.Repository<Client>().GetByIdAsync(id, cancellationToken);
-        return client is null
-            ? null
-            : new ClientDetails(client.Id, client.BrandName, client.AgentName, client.AgentId, client.SiteName, client.LogoPath, client.Credits, client.CreditCostPerMessage, client.LowCreditThreshold);
+        if (client is null) return null;
+
+        var manager = _unitOfWork.Repository<User>().Query().FirstOrDefault(u => u.ClientId == client.Id);
+        return new ClientDetails(client.Id, client.BrandName, client.AgentName, client.AgentId, client.SiteName, client.LogoPath, client.Credits, client.CreditCostPerMessage, client.LowCreditThreshold, manager?.Email, client.WebhookAuditEnabled);
     }
 
     public async Task UpdateAsync(UpdateClientRequest request, CancellationToken cancellationToken = default)
@@ -133,9 +134,21 @@ public sealed class ClientOnboardingService : IClientOnboardingService
         client.Credits = Math.Max(0, request.Credits);
         client.CreditCostPerMessage = Math.Max(1, request.CreditCostPerMessage);
         client.LowCreditThreshold = Math.Max(0, request.LowCreditThreshold);
+        client.WebhookAuditEnabled = request.WebhookAuditEnabled;
+
         if (!string.IsNullOrWhiteSpace(request.ApiKey) && !IsMaskedValue(request.ApiKey))
         {
             client.ApiKey = _secretProtector.Protect(request.ApiKey);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ManagerEmail))
+        {
+            var manager = _unitOfWork.Repository<User>().Query().FirstOrDefault(u => u.ClientId == client.Id);
+            if (manager != null)
+            {
+                manager.Email = request.ManagerEmail.Trim();
+                _unitOfWork.Repository<User>().Update(manager);
+            }
         }
 
         foreach (var user in _unitOfWork.Repository<User>().Query().Where(user => user.ClientId == client.Id).ToArray())

@@ -55,7 +55,7 @@ public sealed class ReportsController : Controller
     [RequirePermission("Reports", "Download")]
     public async Task<IActionResult> ExportCsv(int id, CancellationToken cancellationToken)
     {
-        var result = await _reports.GetContactReportAsync(id, cancellationToken);
+        var result = await _reports.GetContactReportAsync(id, null, cancellationToken);
         if (!result.IsSuccess)
         {
             return NotFound();
@@ -67,12 +67,24 @@ public sealed class ReportsController : Controller
     [RequirePermission("Reports", "Download")]
     public async Task<IActionResult> ExportPdf(int id, CancellationToken cancellationToken)
     {
-        var result = await _reports.GetContactReportAsync(id, cancellationToken);
+        var result = await _reports.GetContactReportAsync(id, null, cancellationToken);
         if (!result.IsSuccess)
         {
             return NotFound();
         }
 
         return File(_pdfExporter.Export(result.Rows), "application/pdf", $"campaign-{id}-report.pdf");
+    }
+
+    [RequirePermission("Reports", "Download")]
+    public async Task<IActionResult> ExportBulkCsv(int[] ids, CancellationToken cancellationToken)
+    {
+        if (ids == null || ids.Length == 0)
+        {
+            return BadRequest("No campaigns selected.");
+        }
+
+        var csv = await _reports.GenerateBulkReportAsync(ids, cancellationToken);
+        return File(csv, "text/csv", $"bulk-campaign-report-{DateTime.Now:yyyyMMdd}.csv");
     }
 }

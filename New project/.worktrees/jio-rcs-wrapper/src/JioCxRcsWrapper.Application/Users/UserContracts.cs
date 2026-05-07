@@ -1,6 +1,15 @@
 namespace JioCxRcsWrapper.Application.Users;
 
-public sealed record UserSummary(int Id, string Name, string Email, string Role, string? Client, bool IsActive, bool IsDeveloper, DateTimeOffset CreatedAt);
+public sealed record UserSummary(
+    int Id,
+    string Name,
+    string Email,
+    string? Password,
+    string Role,
+    string? Client,
+    bool IsActive,
+    bool IsDeveloper,
+    DateTimeOffset CreatedAt);
 
 public sealed record UserEditor(int Id, string Name, string Email, int RoleId, int? ClientId, bool IsActive, bool IsDeveloper);
 
@@ -14,10 +23,21 @@ public sealed record UpdateUserRequest(int Id, string Name, int RoleId, int? Cli
 
 public sealed record UserFilter(string? Name = null, string? Email = null, string? Role = null, string? Client = null);
 
+public sealed record UserCreditHistorySummary(
+    int Id,
+    string TransactionType,
+    int Amount,
+    int PreviousBalance,
+    int NewBalance,
+    string Reason,
+    DateTimeOffset CreatedAt);
+
 public interface IUserManagementService
 {
     Task<IReadOnlyList<UserSummary>> ListAsync(UserFilter? filter = null, CancellationToken cancellationToken = default);
-...
+
+    Task<IReadOnlyList<UserCreditHistorySummary>> GetCreditHistoryAsync(int userId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<RoleOption>> ListRolesAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ClientOption>> ListClientsAsync(CancellationToken cancellationToken = default);

@@ -39,6 +39,47 @@
 <div id="campaign-errors" class="alert alert-danger d-none"></div>
 <div id="campaign-success" class="alert alert-success d-none"></div>
 
+<section class="panel-card mb-4">
+    <div class="panel-card-header">
+        <div>
+            <h2>Filters</h2>
+            <p>Filter campaigns by name, client, type, or status.</p>
+        </div>
+    </div>
+    <div class="p-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Campaign Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter by name..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Client Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter by client..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type</label>
+                <select class="form-select form-select-sm grid-filter-select" data-column="Type">
+                    <option value="">All Types</option>
+                    @foreach (var type in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.CampaignType>())
+                    {
+                        <option value="@type" selected="@(ViewContext.HttpContext.Request.Query["Type"] == type.ToString())">@type</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select form-select-sm grid-filter-select" data-column="Status">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.CampaignStatus>())
+                    {
+                        <option value="@status" selected="@(ViewContext.HttpContext.Request.Query["Status"] == status.ToString())">@status</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="panel-card">
     <div class="panel-card-header">
         <div>
@@ -50,34 +91,10 @@
         <table class="table panel-table align-middle mb-0">
             <thead>
             <tr>
-                <th>
-                    Name
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter..." />
-                </th>
-                <th>
-                    Client
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter..." />
-                </th>
-                <th>
-                    Type
-                    <select class="form-select form-select-sm grid-filter-select" data-column="Type">
-                        <option value="">All</option>
-                        @foreach (var type in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.CampaignType>())
-                        {
-                            <option value="@type" selected="@(ViewContext.HttpContext.Request.Query["Type"] == type.ToString())">@type</option>
-                        }
-                    </select>
-                </th>
-                <th>
-                    Status
-                    <select class="form-select form-select-sm grid-filter-select" data-column="Status">
-                        <option value="">All</option>
-                        @foreach (var status in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.CampaignStatus>())
-                        {
-                            <option value="@status" selected="@(ViewContext.HttpContext.Request.Query["Status"] == status.ToString())">@status</option>
-                        }
-                    </select>
-                </th>
+                <th>Name</th>
+                <th>Client</th>
+                <th>Type</th>
+                <th>Status</th>
                 <th>Contacts</th>
                 <th>Queue Status</th>
                 <th>Scheduled</th>
@@ -88,12 +105,18 @@
             @foreach (var campaign in Model.Items)
             {
                 <tr>
-                    <td class="fw-semibold">@campaign.Name</td>
+                    <td class="fw-semibold">
+                        <a asp-action="Details" asp-route-id="@campaign.Id" class="text-decoration-none">@campaign.Name</a>
+                    </td>
                     <td>@campaign.ClientName</td>
                     <td>@campaign.Type</td>
                     <td><span class="status-pill status-scheduled">@StatusLabels.For(campaign.Status)</span></td>
                     <td>@campaign.ContactCount</td>
-                    <td><span class="status-pill status-active">@campaign.QueueStatus</span></td>
+                    <td>
+                        <a href="javascript:void(0)" class="status-pill status-active text-decoration-none queue-status-link" data-id="@campaign.Id">
+                            @campaign.QueueStatus
+                        </a>
+                    </td>
                     <td>@(campaign.ScheduledAt?.ToLocalTime().ToString("g") ?? "-")</td>
                     <td class="text-end action-cell">
                         <div class="action-stack">
@@ -139,6 +162,49 @@
     </div>
     <partial name="_Pager" model="Model" />
 </section>
+
+<div class="modal fade" id="queueStatusModal" tabindex="-1" aria-labelledby="queueStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="queueStatusModalLabel">Campaign Contacts Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                        <button type="button" class="btn btn-outline-success" data-filter="Sent,Delivered">Success</button>
+                        <button type="button" class="btn btn-outline-danger" data-filter="Failed">Failed</button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-info" id="modal-retry-failed">Retry Failed</button>
+                        <button type="button" class="btn btn-sm btn-danger" id="modal-delete-selected" disabled>Delete Selected</button>
+                        <button type="button" class="btn btn-sm btn-primary" id="modal-retry-selected" disabled>Retry Selected</button>
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="modal-select-all" /></th>
+                                <th>Mobile Number</th>
+                                <th>Status</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-contacts-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script src="~/js/campaigns.js" asp-append-version="true"></script>

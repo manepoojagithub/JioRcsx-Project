@@ -26,6 +26,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<ClientBrandingSetting> ClientBrandingSettings => Set<ClientBrandingSetting>();
     public DbSet<UploadedMedia> UploadedMedia => Set<UploadedMedia>();
     public DbSet<MessageTemplate> MessageTemplates => Set<MessageTemplate>();
+    public DbSet<UserCreditHistory> UserCreditHistories => Set<UserCreditHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

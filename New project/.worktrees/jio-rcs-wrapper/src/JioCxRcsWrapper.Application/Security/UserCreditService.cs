@@ -16,7 +16,7 @@ public sealed class UserCreditService : IUserCreditService
 
     public async Task<UserCreditInfo?> GetCurrentUserCreditsAsync(CancellationToken cancellationToken = default)
     {
-        if (!_currentUser.IsAuthenticated)
+        if (!_currentUser.IsAuthenticated || string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }

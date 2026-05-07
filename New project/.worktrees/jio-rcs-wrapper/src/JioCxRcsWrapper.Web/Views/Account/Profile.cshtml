@@ -1,0 +1,65 @@
+@model JioCxRcsWrapper.Web.Models.Auth.ProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<section class="page-hero dark-hero">
+    <div>
+        <div class="page-eyebrow">User Management</div>
+        <h1>My Profile</h1>
+        <p>Update your password and view account details.</p>
+    </div>
+</section>
+
+<div class="row justify-content-center mt-n5">
+    <div class="col-lg-6">
+        <section class="panel-card shadow-lg">
+            <div class="panel-card-header">
+                <div>
+                    <h2>Account Details</h2>
+                    <p>Information about your account.</p>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Name</label>
+                    <div class="form-control-plaintext">@Model.Name</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Email</label>
+                    <div class="form-control-plaintext">@Model.Email</div>
+                </div>
+
+                <hr class="my-4" />
+
+                <h3>Change Password</h3>
+                <p class="text-muted small mb-4">You will be logged out after changing your password.</p>
+
+                <form asp-action="ChangePassword" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="NewPassword" class="form-label"></label>
+                        <input asp-for="NewPassword" class="form-control" />
+                        <span asp-validation-for="NewPassword" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ConfirmPassword" class="form-label"></label>
+                        <input asp-for="ConfirmPassword" class="form-control" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary w-100 py-2">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

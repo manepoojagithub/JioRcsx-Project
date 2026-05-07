@@ -17,7 +17,6 @@ public interface IUserCreditService
 
 public interface IPermissionService
 {
-...
     Task<bool> HasPermissionAsync(int userId, string module, string permission, CancellationToken cancellationToken = default);
     Task EnsureClientScopeAsync(int userId, int clientId, CancellationToken cancellationToken = default);
 }

@@ -17,64 +17,64 @@
     @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-    <div class="campaign-create-grid">
-        <section class="panel-card form-section">
-            <div class="panel-card-header">
-                <div>
-                    <h2>Campaign Information</h2>
-                    <p>Give this send a clear operational name and client scope.</p>
+    <div class="row">
+        <div class="col-lg-7">
+            <section class="panel-card form-section">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Campaign Information</h2>
+                        <p>Give this send a clear operational name and client scope.</p>
+                    </div>
+                    <span class="section-count">01</span>
                 </div>
-                <span class="section-count">01</span>
-            </div>
-            <div class="form-grid">
-                <div>
-                    <label asp-for="Name" class="form-label"></label>
-                    <input asp-for="Name" class="form-control" />
-                    <span asp-validation-for="Name" class="text-danger"></span>
+                <div class="form-grid">
+                    <div>
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    <div>
+                        <label asp-for="ClientId" class="form-label">Client</label>
+                        <select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select"></select>
+                        <span asp-validation-for="ClientId" class="text-danger"></span>
+                    </div>
                 </div>
-                <div>
-                    <label asp-for="ClientId" class="form-label">Client</label>
-                    <select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select"></select>
-                    <span asp-validation-for="ClientId" class="text-danger"></span>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <section class="panel-card form-section">
-            <div class="panel-card-header">
-                <div>
-                    <h2>Send Rules</h2>
-                    <p>Choose one-time, scheduled, or recurring behavior.</p>
+            <section class="panel-card form-section">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Send Rules</h2>
+                        <p>Choose one-time, scheduled, or recurring behavior.</p>
+                    </div>
+                    <span class="section-count">02</span>
                 </div>
-                <span class="section-count">02</span>
-            </div>
-            <div class="form-grid">
-                <div>
-                    <label asp-for="Type" class="form-label"></label>
-                    <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<JioCxRcsWrapper.Domain.Enums.CampaignType>()"></select>
+                <div class="form-grid">
+                    <div>
+                        <label asp-for="Type" class="form-label"></label>
+                        <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<JioCxRcsWrapper.Domain.Enums.CampaignType>()"></select>
+                    </div>
+                    <div>
+                        <label asp-for="ScheduledAt" class="form-label"></label>
+                        <input asp-for="ScheduledAt" type="datetime-local" class="form-control" />
+                    </div>
                 </div>
-                <div>
-                    <label asp-for="ScheduledAt" class="form-label"></label>
-                    <input asp-for="ScheduledAt" type="datetime-local" class="form-control" />
+                <div class="form-check form-switch mt-3">
+                    <input asp-for="IsRCSEnabled" class="form-check-input" type="checkbox" />
+                    <label asp-for="IsRCSEnabled" class="form-check-label">IsRCSEnabled</label>
+                    <div class="form-text">Uncheck this to skip JioCX RCS number verification before queueing.</div>
                 </div>
-            </div>
-            <div class="form-check form-switch mt-3">
-                <input asp-for="IsRCSEnabled" class="form-check-input" type="checkbox" />
-                <label asp-for="IsRCSEnabled" class="form-check-label">IsRCSEnabled</label>
-                <div class="form-text">Uncheck this to skip JioCX RCS number verification before queueing.</div>
-            </div>
-        </section>
+            </section>
 
-        <section class="panel-card form-section">
-            <div class="panel-card-header">
-                <div>
-                    <h2>Message Template</h2>
-                    <p>Use a send-ready payload from Message Builder.</p>
+            <section class="panel-card form-section">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Message Template</h2>
+                        <p>Use a send-ready payload from Message Builder.</p>
+                    </div>
+                    <span class="section-count">03</span>
                 </div>
-                <span class="section-count">03</span>
-            </div>
-            <div class="row">
-                <div class="col-md-7">
+                <div>
                     <label asp-for="TemplateId" class="form-label">Message Template</label>
                     <select asp-for="TemplateId" class="form-select" id="TemplateId">
                         <option value="">None</option>
@@ -87,27 +87,35 @@
                     </select>
                     <div class="form-text">Only Global templates and templates created for the selected client can be sent.</div>
                 </div>
-                <div class="col-md-5">
-                    <label class="form-label">Preview</label>
-                    <div id="template-preview" class="border rounded p-3 bg-light" style="min-height: 120px; max-height: 400px; overflow-y: auto;">
-                        <span class="text-muted">Select a template to see preview</span>
+            </section>
+        </div>
+        <div class="col-lg-5">
+            <section class="panel-card form-section">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Message Preview</h2>
+                        <p>Visual representation of the selected template.</p>
                     </div>
+                    <span class="section-count">04</span>
                 </div>
-            </div>
-        </section>
+                <div id="template-preview" class="p-3">
+                    <div class="border rounded p-3 bg-light text-center text-muted">Select a template to see preview</div>
+                </div>
+            </section>
 
-        <section class="panel-card form-section campaign-phone-panel">
-            <div class="panel-card-header">
-                <div>
-                    <h2>Recipients</h2>
-                    <p>Enter one or many JioCX-supported E.164 phone numbers.</p>
+            <section class="panel-card form-section campaign-phone-panel">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Recipients</h2>
+                        <p>Enter one or many JioCX-supported E.164 phone numbers.</p>
+                    </div>
+                    <span class="section-count">05</span>
                 </div>
-                <span class="section-count">04</span>
-            </div>
-            <label asp-for="PhoneNumbers" class="form-label">Phone Number(s)</label>
-            <textarea asp-for="PhoneNumbers" class="form-control" rows="7" placeholder="+918000000000, +918000000001"></textarea>
-            <div class="form-text">Separate by comma, semicolon, or new line. CSV upload remains available after creation.</div>
-        </section>
+                <label asp-for="PhoneNumbers" class="form-label">Phone Number(s)</label>
+                <textarea asp-for="PhoneNumbers" class="form-control" rows="7" placeholder="+918000000000, +918000000001"></textarea>
+                <div class="form-text">Separate by comma, semicolon, or new line. CSV upload remains available after creation.</div>
+            </section>
+        </div>
     </div>
 
     <div class="form-actions">
@@ -199,7 +207,10 @@
                 }
                 cardHtml += `<div class="card-body p-2">`;
                 cardHtml += `<h6 class="card-title mb-1 small"><strong>${card.cardTitle}</strong></h6>`;
-                cardHtml += `<p class="card-text small text-muted" style="font-size: 0.75rem;">${card.cardDescription}</p>`;
+                cardHtml += `<p class="card-text small text-muted" style="font-size: 0.75rem; margin-bottom: 0.5rem;">${card.cardDescription}</p>`;
+                if (card.cardFooter) {
+                    cardHtml += `<p class="card-text small text-muted border-top pt-1" style="font-size: 0.7rem; font-style: italic;">${card.cardFooter}</p>`;
+                }
                 cardHtml += `</div>`;
                 renderSuggestions(card.suggestions, (sHtml) => cardHtml += `<div class="p-2 border-top">${sHtml}</div>`);
                 cardHtml += `</div>`;

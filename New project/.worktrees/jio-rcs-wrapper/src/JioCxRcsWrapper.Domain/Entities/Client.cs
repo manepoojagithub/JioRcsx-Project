@@ -13,6 +13,7 @@ public sealed class Client : BaseEntity
     public int Credits { get; set; }
     public int CreditCostPerMessage { get; set; } = 1;
     public int LowCreditThreshold { get; set; } = 10;
+    public bool WebhookAuditEnabled { get; set; }
     public int CreatedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

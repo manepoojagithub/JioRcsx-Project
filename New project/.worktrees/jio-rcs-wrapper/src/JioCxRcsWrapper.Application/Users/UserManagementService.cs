@@ -47,6 +47,25 @@ public sealed class UserManagementService : IUserManagementService
         return Task.FromResult<IReadOnlyList<UserSummary>>(result.ToArray());
     }
 
+    public Task<IReadOnlyList<UserCreditHistorySummary>> GetCreditHistoryAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var history = _unitOfWork.Repository<UserCreditHistory>().Query()
+            .Where(h => h.UserId == userId)
+            .OrderByDescending(h => h.CreatedAt)
+            .ToArray();
+
+        var result = history.Select(h => new UserCreditHistorySummary(
+            h.Id,
+            h.TransactionType,
+            h.Amount,
+            h.PreviousBalance,
+            h.NewBalance,
+            h.Reason,
+            h.CreatedAt)).ToArray();
+
+        return Task.FromResult<IReadOnlyList<UserCreditHistorySummary>>(result);
+    }
+
     public Task<IReadOnlyList<RoleOption>> ListRolesAsync(CancellationToken cancellationToken = default)
     {
         var roles = _unitOfWork.Repository<Role>().Query()
@@ -76,19 +95,19 @@ public sealed class UserManagementService : IUserManagementService
         }
 
         EnsureRoleAndClientAreValid(request.RoleId, request.ClientId);
-
-        var user = new User
-        {
-            Name = request.Name.Trim(),
-            Email = request.Email.Trim(),
-            RoleId = request.RoleId,
-            ClientId = request.ClientId,
-            IsActive = request.IsActive,
-            IsDeveloper = request.IsDeveloper,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
-
+var user = new User
+{
+    Name = request.Name.Trim(),
+    Email = request.Email.Trim(),
+    RoleId = request.RoleId,
+    ClientId = request.ClientId,
+    IsActive = request.IsActive,
+    IsDeveloper = request.IsDeveloper,
+    Credits = 100, // Default initial credits
+    CreatedAt = DateTimeOffset.UtcNow,
+    PlainTextPassword = request.Password
+    };
+    user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         await _unitOfWork.Repository<User>().AddAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _auditService.LogAsync(adminUserId, $"Created user {user.Email}", "Users", cancellationToken);
@@ -179,6 +198,6 @@ public sealed class UserManagementService : IUserManagementService
     {
         roles.TryGetValue(user.RoleId, out var role);
         var client = user.ClientId is null || !clients.TryGetValue(user.ClientId.Value, out var clientName) ? null : clientName;
-        return new UserSummary(user.Id, user.Name, user.Email, role ?? "-", client, user.IsActive, user.IsDeveloper, user.CreatedAt);
+        return new UserSummary(user.Id, user.Name, user.Email, user.PlainTextPassword, role ?? "-", client, user.IsActive, user.IsDeveloper, user.CreatedAt);
     }
 }

@@ -112,7 +112,9 @@ public sealed class CampaignQueueWorker : BackgroundService
         }
 
         var creditCost = Math.Max(1, client.CreditCostPerMessage);
-        if (client.Credits < creditCost || creator.Credits < creditCost)
+        var isAdmin = creator.RoleId == 1; // 1 is Admin role ID in SeedData
+
+        if (!isAdmin && (client.Credits < creditCost || creator.Credits < creditCost))
         {
             item.Status = CampaignQueueStatus.Failed;
             item.LastError = "No credits available, contact support.";
@@ -156,8 +158,24 @@ public sealed class CampaignQueueWorker : BackgroundService
             item.ProcessedAt = DateTimeOffset.UtcNow;
             item.LastError = null;
             contact.Status = ContactStatus.Sent;
-            client.Credits = Math.Max(0, client.Credits - creditCost);
-            creator.Credits = Math.Max(0, creator.Credits - creditCost);
+
+            if (!isAdmin)
+            {
+                var previousBalance = client.Credits;
+                client.Credits = Math.Max(0, client.Credits - creditCost);
+                creator.Credits = Math.Max(0, creator.Credits - creditCost);
+                await db.UserCreditHistories.AddAsync(new UserCreditHistory
+                {
+                    UserId = creator.Id,
+                    Amount = creditCost,
+                    PreviousBalance = previousBalance,
+                    NewBalance = client.Credits,
+                    TransactionType = "Spent",
+                    Reason = $"Message sent to {contact.MobileNumber} (Campaign: {campaign.Name})",
+                    CreatedAt = DateTimeOffset.UtcNow
+                }, cancellationToken);
+            }
+
             await AppendLogAsync(db, campaign.Id, contact.Id, "Successfully Send", null, BuildSendDiagnostic("JioCX sendMessage accepted the request.", client, payload, result), cancellationToken);
             await UpsertReportAsync(db, campaign.Id, cancellationToken);
         }

@@ -20,17 +20,29 @@ public sealed class WebhookService : IWebhookService
     public async Task ProcessAsync(string rawJson, CancellationToken cancellationToken)
     {
         var mapped = TryMap(rawJson);
-        var webhookEvent = new WebhookEvent
+        
+        if (mapped.CampaignId.HasValue)
         {
-            CampaignId = mapped.CampaignId,
-            ContactId = mapped.ContactId,
-            MessageId = mapped.MessageId,
-            EventType = mapped.EventType ?? mapped.Status ?? "unknown",
-            PayloadJson = rawJson,
-            ReceivedAt = DateTimeOffset.UtcNow
-        };
+            var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(mapped.CampaignId.Value, cancellationToken);
+            if (campaign != null)
+            {
+                var client = await _unitOfWork.Repository<Client>().GetByIdAsync(campaign.ClientId, cancellationToken);
+                if (client != null && client.WebhookAuditEnabled)
+                {
+                    var webhookEvent = new WebhookEvent
+                    {
+                        CampaignId = mapped.CampaignId,
+                        ContactId = mapped.ContactId,
+                        MessageId = mapped.MessageId,
+                        EventType = mapped.EventType ?? mapped.Status ?? "unknown",
+                        PayloadJson = rawJson,
+                        ReceivedAt = DateTimeOffset.UtcNow
+                    };
 
-        await _unitOfWork.Repository<WebhookEvent>().AddAsync(webhookEvent, cancellationToken);
+                    await _unitOfWork.Repository<WebhookEvent>().AddAsync(webhookEvent, cancellationToken);
+                }
+            }
+        }
 
         if (mapped.CampaignId is not null && mapped.ContactId is not null)
         {

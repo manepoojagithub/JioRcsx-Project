@@ -7,6 +7,8 @@ using JioCxRcsWrapper.Application.Templates;
 using JioCxRcsWrapper.Web.Filters;
 using JioCxRcsWrapper.Web.Models.Campaigns;
 using Microsoft.AspNetCore.Authorization;
+using JioCxRcsWrapper.Application.Common.Interfaces;
+using JioCxRcsWrapper.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JioCxRcsWrapper.Web.Controllers;
@@ -18,13 +20,15 @@ public sealed class CampaignsController : Controller
     private readonly ICurrentUser _currentUser;
     private readonly IMessageTemplateService _templates;
     private readonly IClientOnboardingService _clients;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public CampaignsController(ICampaignService campaigns, ICurrentUser currentUser, IMessageTemplateService templates, IClientOnboardingService clients)
+    public CampaignsController(ICampaignService campaigns, ICurrentUser currentUser, IMessageTemplateService templates, IClientOnboardingService clients, IUnitOfWork unitOfWork)
     {
         _campaigns = campaigns;
         _currentUser = currentUser;
         _templates = templates;
         _clients = clients;
+        _unitOfWork = unitOfWork;
     }
 
     [RequirePermission("Campaigns", "View")]
@@ -36,6 +40,32 @@ public sealed class CampaignsController : Controller
         ViewBag.QueuedCampaigns = campaigns.Count(campaign => campaign.Status.ToString().Contains("Queued"));
         ViewBag.ScheduledCampaigns = campaigns.Count(campaign => campaign.ScheduledAt is not null);
         return View(PagedResult<CampaignSummary>.Create(campaigns, pageNumber, pageSize));
+    }
+
+    [RequirePermission("Campaigns", "View")]
+    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
+    {
+        var campaigns = await _campaigns.ListAsync(null, cancellationToken);
+        var campaign = campaigns.FirstOrDefault(c => c.Id == id);
+        if (campaign == null) return NotFound();
+
+        var contacts = await _campaigns.GetContactsAsync(id, cancellationToken);
+        
+        MessageTemplateEditor? template = null;
+        var campaignMessage = _unitOfWork.Repository<CampaignMessage>().Query().FirstOrDefault(m => m.CampaignId == id);
+        if (campaignMessage is not null)
+        {
+            template = await _templates.GetForEditAsync(campaignMessage.TemplateId, cancellationToken);
+        }
+
+        var viewModel = new DetailsViewModel
+        {
+            Campaign = campaign,
+            Contacts = contacts,
+            Template = template
+        };
+
+        return View(viewModel);
     }
 
     [RequirePermission("Campaigns", "Add")]
@@ -117,11 +147,45 @@ public sealed class CampaignsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission("Campaigns", "Retry")]
+    public async Task<IActionResult> RetryFailed(int campaignId, CancellationToken cancellationToken)
+    {
+        var result = await _campaigns.RetryFailedAsync(campaignId, cancellationToken);
+        return ToJsonResult(result);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequirePermission("Campaigns", "Update")]
+    public async Task<IActionResult> DeleteContacts(int campaignId, int[] contactIds, CancellationToken cancellationToken)
+    {
+        var result = await _campaigns.DeleteContactsAsync(campaignId, contactIds, cancellationToken);
+        return ToJsonResult(result);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequirePermission("Campaigns", "Retry")]
+    public async Task<IActionResult> RetrySelected(int campaignId, int[] contactIds, CancellationToken cancellationToken)
+    {
+        var result = await _campaigns.RetryContactsAsync(campaignId, contactIds, cancellationToken);
+        return ToJsonResult(result);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     [RequirePermission("Campaigns", "Delete")]
     public async Task<IActionResult> Delete(int campaignId, CancellationToken cancellationToken)
     {
         var result = await _campaigns.DeleteCampaignAsync(campaignId, cancellationToken);
         return ToJsonResult(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetContacts(int campaignId, CancellationToken cancellationToken)
+    {
+        var contacts = await _campaigns.GetContactsAsync(campaignId, cancellationToken);
+        return Json(contacts);
     }
 
     [HttpGet]
@@ -149,9 +213,9 @@ public sealed class CampaignsController : Controller
 
     private async Task PopulateLookupsAsync(CancellationToken cancellationToken)
     {
-        ViewBag.Templates = await _templates.ListAsync(cancellationToken);
+        ViewBag.Templates = await _templates.ListAsync(null, cancellationToken);
 
-        var clients = await _clients.ListAsync(cancellationToken);
+        var clients = await _clients.ListAsync(null, cancellationToken);
         if (!string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase) && _currentUser.ClientId is not null)
         {
             clients = clients.Where(client => client.Id == _currentUser.ClientId.Value).ToArray();

@@ -3,6 +3,7 @@ using JioCxRcsWrapper.Application.Security;
 using JioCxRcsWrapper.Domain.Entities;
 using JioCxRcsWrapper.Domain.Enums;
 using System.Text.Json;
+using System.Text;
 
 namespace JioCxRcsWrapper.Application.Reports;
 
@@ -97,6 +98,38 @@ public sealed class ReportService : IReportService
         }
 
         return Task.FromResult(ContactReportResult.Success(result.ToArray()));
+    }
+
+    public Task<byte[]> GenerateBulkReportAsync(int[] campaignIds, CancellationToken cancellationToken = default)
+    {
+        var campaigns = _unitOfWork.Repository<Campaign>().Query()
+            .Where(c => campaignIds.Contains(c.Id))
+            .ToArray();
+
+        var contacts = _unitOfWork.Repository<Contact>().Query()
+            .Where(c => campaignIds.Contains(c.CampaignId))
+            .ToArray();
+
+        var logs = _unitOfWork.Repository<MessageLog>().Query()
+            .Where(l => campaignIds.Contains(l.CampaignId))
+            .ToArray();
+
+        using var stream = new MemoryStream();
+        using (var writer = new StreamWriter(stream, Encoding.UTF8))
+        {
+            writer.WriteLine("Campaign,MobileNumber,Status,Opened,Clicked,ErrorCode,Timestamp");
+            foreach (var campaign in campaigns)
+            {
+                var campaignContacts = contacts.Where(c => c.CampaignId == campaign.Id).ToArray();
+                foreach (var contact in campaignContacts)
+                {
+                    var lastLog = logs.Where(l => l.ContactId == contact.Id).OrderByDescending(l => l.Timestamp).FirstOrDefault();
+                    writer.WriteLine($"{campaign.Name},{contact.MobileNumber},{contact.Status},{contact.Status == ContactStatus.Opened},{contact.Status == ContactStatus.Clicked},{lastLog?.ErrorCode ?? "-"},{lastLog?.Timestamp:g}");
+                }
+            }
+        }
+
+        return Task.FromResult(stream.ToArray());
     }
 
     private IQueryable<Campaign> ScopedCampaigns()

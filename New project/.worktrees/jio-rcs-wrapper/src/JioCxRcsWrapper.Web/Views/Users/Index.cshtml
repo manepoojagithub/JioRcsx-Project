@@ -25,26 +25,44 @@
     </div>
 </div>
 
+<section class="panel-card mb-4">
+    <div class="panel-card-header">
+        <div>
+            <h2>Filters</h2>
+            <p>Filter users by name, email, role, or client.</p>
+        </div>
+    </div>
+    <div class="p-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter by name..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Email</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="Email" value="@ViewContext.HttpContext.Request.Query["Email"]" placeholder="Filter by email..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Role</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="Role" value="@ViewContext.HttpContext.Request.Query["Role"]" placeholder="Filter by role..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Client</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="Client" value="@ViewContext.HttpContext.Request.Query["Client"]" placeholder="Filter by client..." />
+            </div>
+        </div>
+    </div>
+</section>
+
 <div class="table-responsive">
     <table class="table table-striped align-middle">
         <thead>
         <tr>
-            <th>
-                Name
-                <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter..." />
-            </th>
-            <th>
-                Email
-                <input type="text" class="form-control form-control-sm grid-filter" data-column="Email" value="@ViewContext.HttpContext.Request.Query["Email"]" placeholder="Filter..." />
-            </th>
-            <th>
-                Role
-                <input type="text" class="form-control form-control-sm grid-filter" data-column="Role" value="@ViewContext.HttpContext.Request.Query["Role"]" placeholder="Filter..." />
-            </th>
-            <th>
-                Client
-                <input type="text" class="form-control form-control-sm grid-filter" data-column="Client" value="@ViewContext.HttpContext.Request.Query["Client"]" placeholder="Filter..." />
-            </th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Role</th>
+            <th>Client</th>
             <th>Status</th>
             <th>Developer</th>
             <th>Created</th>
@@ -57,6 +75,7 @@
             <tr>
                 <td>@user.Name</td>
                 <td>@user.Email</td>
+                <td>@user.Password</td>
                 <td>@user.Role</td>
                 <td>@(user.Client ?? "-")</td>
                 <td><span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">@(user.IsActive ? "Active" : "Inactive")</span></td>
@@ -66,6 +85,7 @@
                     <div class="action-stack">
                     @if (canUpdate)
                     {
+                        <a asp-action="CreditHistory" asp-route-id="@user.Id" class="btn btn-sm btn-outline-info">Credits</a>
                         <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">Edit</a>
                     }
                     @if (canDisable && user.IsActive)

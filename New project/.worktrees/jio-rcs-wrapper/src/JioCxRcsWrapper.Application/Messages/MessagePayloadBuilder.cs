@@ -77,6 +77,7 @@ public static class MessagePayloadBuilder
                         {
                             cardTitle = draft.Title!.Trim(),
                             cardDescription = draft.Description!.Trim(),
+                            cardFooter = draft.Footer?.Trim(),
                             cardMedia = new
                             {
                                 mediaHeight = "MEDIUM",
@@ -113,6 +114,7 @@ public static class MessagePayloadBuilder
             {
                 cardTitle = card.Title.Trim(),
                 cardDescription = card.Description.Trim(),
+                cardFooter = card.Footer?.Trim(),
                 cardMedia = new
                 {
                     mediaHeight = "MEDIUM",
@@ -209,17 +211,13 @@ public static class MessagePayloadBuilder
                 errors.Add("CTA text is required.");
             }
 
-            if (string.IsNullOrWhiteSpace(cta.PostBackData))
-            {
-                errors.Add("CTA postback data is required.");
-            }
-
             if (errors.Count > 0)
             {
                 continue;
             }
 
-            var postBack = new Dictionary<string, object> { ["data"] = cta.PostBackData.Trim() };
+            var postBackData = string.IsNullOrWhiteSpace(cta.PostBackData) ? cta.Text.Trim() : cta.PostBackData.Trim();
+            var postBack = new Dictionary<string, object> { ["data"] = postBackData };
             if (cta.ActionType == CtaActionType.SuggestedReply)
             {
                 suggestions.Add(new Dictionary<string, object>

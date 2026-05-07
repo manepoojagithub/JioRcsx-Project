@@ -1,0 +1,136 @@
+@model JioCxRcsWrapper.Web.Models.Campaigns.DetailsViewModel
+@{
+    ViewData["Title"] = "Campaign Details";
+}
+
+<section class="page-hero dark-hero">
+    <div>
+        <div class="page-eyebrow">Campaign Audit</div>
+        <h1>@Model.Campaign.Name</h1>
+        <p>Comprehensive overview of configuration, message content, and delivery performance.</p>
+    </div>
+    <div class="hero-actions">
+        <a asp-action="Index" class="btn btn-light panel-soft-btn">Back to List</a>
+    </div>
+</section>
+
+<div class="row mt-n5">
+    <div class="col-lg-4">
+        <section class="panel-card shadow-lg mb-4">
+            <div class="panel-card-header">
+                <div>
+                    <h2>Campaign Info</h2>
+                    <p>Core configuration settings.</p>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Status</label>
+                    <div><span class="status-pill status-active">@Model.Campaign.Status</span></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Client</label>
+                    <div class="form-control-plaintext">@Model.Campaign.ClientName</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Type</label>
+                    <div class="form-control-plaintext">@Model.Campaign.Type</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Scheduled At</label>
+                    <div class="form-control-plaintext">@(Model.Campaign.ScheduledAt?.ToLocalTime().ToString("f") ?? "Immediate")</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-8">
+        @if (Model.Template != null)
+        {
+            <section class="panel-card shadow-lg mb-4">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Message Content</h2>
+                        <p>Template used for this campaign.</p>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Template Name</label>
+                        <div class="form-control-plaintext">@Model.Template.TemplateName</div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Template.Text))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Text</label>
+                            <div class="form-control-plaintext">@Html.Raw(Model.Template.Text)</div>
+                        </div>
+                    }
+                    @if (Model.Template.MessageType == "RichCard")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Title</label>
+                            <div class="form-control-plaintext">@Html.Raw(Model.Template.Title)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <div class="form-control-plaintext">@Html.Raw(Model.Template.Description)</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.Template.MediaUrl))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Media</label>
+                                <div>
+                                    <a href="@Model.Template.MediaUrl" target="_blank">
+                                        <img src="@Model.Template.MediaUrl" class="img-fluid" style="max-height: 200px;" />
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </section>
+        }
+
+        <section class="panel-card shadow-lg">
+            <div class="panel-card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Recipient Tracking</h2>
+                    <p>Detailed status for every contact.</p>
+                </div>
+            </div>
+            <div class="table-responsive" style="max-height: 500px;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Mobile Number</th>
+                            <th>Status</th>
+                            <th>Diagnostic Code</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var contact in Model.Contacts)
+                        {
+                            <tr>
+                                <td class="font-monospace">@contact.MobileNumber</td>
+                                <td>
+                                    <span class="badge bg-light @(contact.StatusText == "Delivered" || contact.StatusText == "Sent" ? "text-success" : (contact.StatusText == "Failed" ? "text-danger" : "text-secondary")) border">@contact.StatusText</span>
+                                </td>
+                                <td class="small text-muted font-monospace">@(contact.ErrorCode ?? "-")</td>
+                            </tr>
+                        }
+                        @if (!Model.Contacts.Any())
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center py-5 text-muted">
+                                    <i class="bi bi-people h1 d-block opacity-25"></i>
+                                    No contacts found for this campaign.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
