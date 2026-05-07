@@ -1,8 +1,12 @@
 @model JioCxRcsWrapper.Web.Models.Campaigns.DetailsViewModel
+@using System.Text.Json
+@using JioCxRcsWrapper.Domain.Enums
 @{
     ViewData["Title"] = "Campaign Details";
 }
 
+@if (Model.Campaign != null)
+{
 <section class="page-hero dark-hero">
     <div>
         <div class="page-eyebrow">Campaign Audit</div>
@@ -47,6 +51,9 @@
     <div class="col-lg-8">
         @if (Model.Template != null)
         {
+            var payload = JsonDocument.Parse(Model.Template.PayloadJson);
+            var content = payload.RootElement.GetProperty("content");
+
             <section class="panel-card shadow-lg mb-4">
                 <div class="panel-card-header">
                     <div>
@@ -57,32 +64,33 @@
                 <div class="p-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Template Name</label>
-                        <div class="form-control-plaintext">@Model.Template.TemplateName</div>
+                        <div class="form-control-plaintext">@Model.Template.Name</div>
                     </div>
-                    @if (!string.IsNullOrEmpty(Model.Template.Text))
+                    @if (Model.Template.MessageType == MessageType.PlainText)
                     {
                         <div class="mb-3">
                             <label class="form-label fw-bold">Text</label>
-                            <div class="form-control-plaintext">@Html.Raw(Model.Template.Text)</div>
+                            <div class="form-control-plaintext">@Html.Raw(content.GetProperty("plainText").GetString())</div>
                         </div>
                     }
-                    @if (Model.Template.MessageType == "RichCard")
+                    else if (Model.Template.MessageType == MessageType.RichCard)
                     {
+                        var richCard = content.GetProperty("richCardDetails").GetProperty("standalone").GetProperty("content");
                         <div class="mb-3">
                             <label class="form-label fw-bold">Title</label>
-                            <div class="form-control-plaintext">@Html.Raw(Model.Template.Title)</div>
+                            <div class="form-control-plaintext">@Html.Raw(richCard.GetProperty("cardTitle").GetString())</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Description</label>
-                            <div class="form-control-plaintext">@Html.Raw(Model.Template.Description)</div>
+                            <div class="form-control-plaintext">@Html.Raw(richCard.GetProperty("cardDescription").GetString())</div>
                         </div>
-                        @if (!string.IsNullOrEmpty(Model.Template.MediaUrl))
+                        @if (richCard.TryGetProperty("cardMedia", out var media) && media.GetProperty("contentInfo").TryGetProperty("fileUrl", out var fileUrl))
                         {
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Media</label>
                                 <div>
-                                    <a href="@Model.Template.MediaUrl" target="_blank">
-                                        <img src="@Model.Template.MediaUrl" class="img-fluid" style="max-height: 200px;" />
+                                    <a href="@fileUrl.GetString()" target="_blank">
+                                        <img src="@fileUrl.GetString()" class="img-fluid" style="max-height: 200px;" />
                                     </a>
                                 </div>
                             </div>
@@ -109,17 +117,29 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var contact in Model.Contacts)
+                        @if (Model.Contacts != null)
                         {
-                            <tr>
-                                <td class="font-monospace">@contact.MobileNumber</td>
-                                <td>
-                                    <span class="badge bg-light @(contact.StatusText == "Delivered" || contact.StatusText == "Sent" ? "text-success" : (contact.StatusText == "Failed" ? "text-danger" : "text-secondary")) border">@contact.StatusText</span>
-                                </td>
-                                <td class="small text-muted font-monospace">@(contact.ErrorCode ?? "-")</td>
-                            </tr>
+                            @foreach (var contact in Model.Contacts)
+                            {
+                                <tr>
+                                    <td class="font-monospace">@contact.MobileNumber</td>
+                                    <td>
+                                        <span class="badge bg-light @(contact.StatusText == "Delivered" || contact.StatusText == "Sent" ? "text-success" : (contact.StatusText == "Failed" ? "text-danger" : "text-secondary")) border">@contact.StatusText</span>
+                                    </td>
+                                    <td class="small text-muted font-monospace">@(contact.ErrorCode ?? "-")</td>
+                                </tr>
+                            }
+                            @if (!Model.Contacts.Any())
+                            {
+                                <tr>
+                                    <td colspan="3" class="text-center py-5 text-muted">
+                                        <i class="bi bi-people h1 d-block opacity-25"></i>
+                                        No contacts found for this campaign.
+                                    </td>
+                                </tr>
+                            }
                         }
-                        @if (!Model.Contacts.Any())
+                        else
                         {
                             <tr>
                                 <td colspan="3" class="text-center py-5 text-muted">
@@ -134,3 +154,8 @@
         </section>
     </div>
 </div>
+}
+else
+{
+    <div class="alert alert-danger">Campaign not found.</div>
+}

@@ -53,7 +53,7 @@ public sealed class CampaignsController : Controller
         
         MessageTemplateEditor? template = null;
         var campaignMessage = _unitOfWork.Repository<CampaignMessage>().Query().FirstOrDefault(m => m.CampaignId == id);
-        if (campaignMessage is not null)
+        if (campaignMessage is not null && campaignMessage.TemplateId != 0)
         {
             template = await _templates.GetForEditAsync(campaignMessage.TemplateId, cancellationToken);
         }
@@ -87,7 +87,7 @@ public sealed class CampaignsController : Controller
         }
 
         var result = await _campaigns.CreateDraftAsync(
-            new CreateCampaignRequest(model.Name, model.ClientId, model.Type, model.ScheduledAt, model.TemplateId, [model.PhoneNumbers ?? string.Empty], model.IsRCSEnabled),
+            new CreateCampaignRequest(model.Name, model.ClientId, model.Type, model.ScheduledAt, model.TemplateId ?? 0, [model.PhoneNumbers ?? string.Empty], model.IsRCSEnabled),
             cancellationToken);
 
         if (!result.IsSuccess)
