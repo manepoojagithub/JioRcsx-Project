@@ -82,9 +82,9 @@ public sealed class ReportService : IReportService
                     lastLog?.Timestamp,
                     diagnostic.ErrorMessage,
                     diagnostic.RequestHeaders,
-                    diagnostic.RequestPayload,
+                    lastLog?.RequestPayload ?? diagnostic.RequestPayload,
                     diagnostic.ResponseStatusCode,
-                    diagnostic.ResponseBody);
+                    lastLog?.ResponseJson ?? diagnostic.ResponseBody);
             })
             .AsEnumerable();
 

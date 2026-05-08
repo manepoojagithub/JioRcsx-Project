@@ -109,7 +109,10 @@ public sealed class CampaignService : ICampaignService
     {
         var logs = _unitOfWork.Repository<MessageLog>().Query()
             .Where(l => l.CampaignId == campaignId)
-            .ToDictionary(l => l.ContactId, l => l.ErrorCode);
+            .OrderByDescending(l => l.Timestamp)
+            .AsEnumerable()
+            .GroupBy(l => l.ContactId)
+            .ToDictionary(g => g.Key, g => g.First().ErrorCode);
 
         var contacts = _unitOfWork.Repository<Contact>().Query()
             .Where(contact => contact.CampaignId == campaignId)
@@ -149,49 +152,6 @@ public sealed class CampaignService : ICampaignService
             return CampaignOperationResult.Failed("At least one phone number is required for one-time campaigns.");
         }
 
-        // Duplicate Campaign Detection
-        var existingCampaign = _unitOfWork.Repository<Campaign>().Query()
-            .FirstOrDefault(c => c.Name == request.Name.Trim() &&
-                                 c.ClientId == request.ClientId &&
-                                 c.Type == request.Type &&
-                                 c.ScheduledAt == request.ScheduledAt);
-
-        // If duplicate, we need to check if the template matches too
-        if (existingCampaign != null)
-        {
-            var existingMessage = _unitOfWork.Repository<CampaignMessage>().Query()
-                .FirstOrDefault(m => m.CampaignId == existingCampaign.Id);
-            
-            if (existingMessage?.TemplateId == request.TemplateId)
-            {
-                // Duplicate found, append contacts
-                foreach (var phoneNumber in manualPhoneNumbers)
-                {
-                    var exists = _unitOfWork.Repository<Contact>().Query()
-                        .Any(c => c.CampaignId == existingCampaign.Id && c.MobileNumber == phoneNumber);
-                    
-                    if (!exists)
-                    {
-                        await _unitOfWork.Repository<Contact>().AddAsync(new Contact
-                        {
-                            CampaignId = existingCampaign.Id,
-                            MobileNumber = phoneNumber,
-                            Status = ContactStatus.Pending
-                        }, cancellationToken);
-                    }
-                }
-
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                
-                if (request.Type == CampaignType.OneTime && manualPhoneNumbers.Count > 0)
-                {
-                    return await QueueCampaignAsync(existingCampaign.Id, cancellationToken);
-                }
-
-                return CampaignOperationResult.Success(existingCampaign.Id);
-            }
-        }
-
         var campaign = new Campaign
         {
             Name = request.Name.Trim(),
@@ -211,7 +171,7 @@ public sealed class CampaignService : ICampaignService
             var template = _unitOfWork.Repository<MessageTemplate>().Query().FirstOrDefault(value => value.Id == request.TemplateId.Value);
             if (template is null || (template.ClientId is not null && template.ClientId != request.ClientId))
             {
-                return CampaignOperationResult.Failed("Message template not found for the selected client. Select a Global template or a template created for this campaign client.");
+                return CampaignOperationResult.Failed("Message template not found for the selected client.");
             }
 
             await _unitOfWork.Repository<CampaignMessage>().AddAsync(new CampaignMessage
@@ -246,27 +206,14 @@ public sealed class CampaignService : ICampaignService
     public async Task<CampaignOperationResult> UploadContactsAsync(int campaignId, string csv, CancellationToken cancellationToken)
     {
         var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
-        if (campaign is null)
-        {
-            return CampaignOperationResult.Failed("Campaign not found.");
-        }
-
-        if (campaign.Status == CampaignStatus.Paused)
-        {
-            return CampaignOperationResult.Failed("Campaign is disabled.");
-        }
+        if (campaign is null) return CampaignOperationResult.Failed("Campaign not found.");
+        if (campaign.Status == CampaignStatus.Paused) return CampaignOperationResult.Failed("Campaign is disabled.");
 
         var scopeError = ValidateClientScope(campaign.ClientId);
-        if (scopeError is not null)
-        {
-            return CampaignOperationResult.Failed(scopeError);
-        }
+        if (scopeError is not null) return CampaignOperationResult.Failed(scopeError);
 
         var parsed = _csvParser.Parse(csv);
-        if (!parsed.IsValid)
-        {
-            return CampaignOperationResult.Failed(parsed.Errors);
-        }
+        if (!parsed.IsValid) return CampaignOperationResult.Failed(parsed.Errors);
 
         var contactRepository = _unitOfWork.Repository<Contact>();
         var existingMobileNumbers = contactRepository.Query()
@@ -277,10 +224,7 @@ public sealed class CampaignService : ICampaignService
         var addedCount = 0;
         foreach (var mobileNumber in parsed.MobileNumbers.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (!existingMobileNumbers.Add(mobileNumber))
-            {
-                continue;
-            }
+            if (!existingMobileNumbers.Add(mobileNumber)) continue;
 
             await contactRepository.AddAsync(new Contact
             {
@@ -293,8 +237,7 @@ public sealed class CampaignService : ICampaignService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // Auto-queue if campaign is in draft, queued, or processing status
-        if (addedCount > 0 && (campaign.Status == CampaignStatus.Draft || campaign.Status == CampaignStatus.Queued || campaign.Status == CampaignStatus.Processing))
+        if (addedCount > 0 && campaign.Status != CampaignStatus.Paused)
         {
             return await QueueCampaignAsync(campaign.Id, cancellationToken);
         }
@@ -302,126 +245,54 @@ public sealed class CampaignService : ICampaignService
         return CampaignOperationResult.Success(campaign.Id);
     }
 
-    public async Task<CampaignOperationResult> DisableCampaignAsync(int campaignId, CancellationToken cancellationToken)
-    {
-        if (!IsAdmin())
-        {
-            return CampaignOperationResult.Failed("Only Admin can disable campaigns.");
-        }
-
-        var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
-        if (campaign is null)
-        {
-            return CampaignOperationResult.Failed("Campaign not found.");
-        }
-
-        campaign.Status = CampaignStatus.Paused;
-        foreach (var item in _unitOfWork.Repository<CampaignQueueItem>().Query()
-                     .Where(item => item.CampaignId == campaignId && item.Status != CampaignQueueStatus.Succeeded && item.Status != CampaignQueueStatus.Failed)
-                     .ToArray())
-        {
-            item.Status = CampaignQueueStatus.Paused;
-            item.NextAttemptAt = null;
-            item.LockedAt = null;
-            item.LockedBy = null;
-        }
-
-        _unitOfWork.Repository<Campaign>().Update(campaign);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return CampaignOperationResult.Success(campaign.Id);
-    }
-
-    public async Task<CampaignOperationResult> DeleteCampaignAsync(int campaignId, CancellationToken cancellationToken)
-    {
-        if (!IsAdmin())
-        {
-            return CampaignOperationResult.Failed("Only Admin can delete campaigns.");
-        }
-
-        var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
-        if (campaign is null)
-        {
-            return CampaignOperationResult.Failed("Campaign not found.");
-        }
-
-        RemoveRelated<CampaignQueueItem>(item => item.CampaignId == campaignId);
-        RemoveRelated<MessageLog>(log => log.CampaignId == campaignId);
-        RemoveRelated<Report>(report => report.CampaignId == campaignId);
-        RemoveRelated<Contact>(contact => contact.CampaignId == campaignId);
-        RemoveRelated<CampaignMessage>(message => message.CampaignId == campaignId);
-        _unitOfWork.Repository<Campaign>().Remove(campaign);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return CampaignOperationResult.Success(campaignId);
-    }
-
-    private void RemoveRelated<TEntity>(Func<TEntity, bool> predicate)
-        where TEntity : BaseEntity
-    {
-        var repository = _unitOfWork.Repository<TEntity>();
-        foreach (var item in repository.Query().Where(predicate).ToArray())
-        {
-            repository.Remove(item);
-        }
-    }
-
     public async Task<CampaignOperationResult> QueueCampaignAsync(int campaignId, CancellationToken cancellationToken)
     {
         var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
-        if (campaign is null)
-        {
-            return CampaignOperationResult.Failed("Campaign not found.");
-        }
-
-        if (campaign.Status == CampaignStatus.Paused)
-        {
-            return CampaignOperationResult.Failed("Campaign is disabled.");
-        }
+        if (campaign is null) return CampaignOperationResult.Failed("Campaign not found.");
+        if (campaign.Status == CampaignStatus.Paused) return CampaignOperationResult.Failed("Campaign is disabled.");
 
         var scopeError = ValidateClientScope(campaign.ClientId);
-        if (scopeError is not null)
-        {
-            return CampaignOperationResult.Failed(scopeError);
-        }
+        if (scopeError is not null) return CampaignOperationResult.Failed(scopeError);
 
         var client = await _unitOfWork.Repository<Client>().GetByIdAsync(campaign.ClientId, cancellationToken);
-        if (client is null)
-        {
-            return CampaignOperationResult.Failed("Client not found.");
-        }
+        if (client is null) client = _unitOfWork.Repository<Client>().Query().FirstOrDefault(c => c.Id == campaign.ClientId);
+        if (client is null) return CampaignOperationResult.Failed($"Client not found (ID: {campaign.ClientId}).");
+
+        var contactRepository = _unitOfWork.Repository<Contact>();
+        var queueRepository = _unitOfWork.Repository<CampaignQueueItem>();
 
         var contacts = _unitOfWork.Repository<Contact>().Query()
-            .Where(contact => contact.CampaignId == campaign.Id)
+            .Where(c => c.CampaignId == campaign.Id && c.Status == ContactStatus.Pending)
             .ToArray();
 
-        if (contacts.Length == 0)
-        {
-            return CampaignOperationResult.Failed("Contact required");
-        }
+        if (contacts.Length == 0) return CampaignOperationResult.Failed("No pending contacts found.");
 
-        var queueRepository = _unitOfWork.Repository<CampaignQueueItem>();
         var creator = await _unitOfWork.Repository<User>().GetByIdAsync(campaign.CreatedBy, cancellationToken);
-        if (creator is null)
+        if (creator is null) return CampaignOperationResult.Failed("Campaign creator not found.");
+
+        var isAdmin = creator.RoleId == 1;
+        var creditCost = Math.Max(1, client.CreditCostPerMessage);
+        
+        var availableQueueSlots = int.MaxValue;
+        if (!isAdmin)
         {
-            return CampaignOperationResult.Failed("Campaign creator not found.");
+            var reservedCreditCount = queueRepository.Query()
+                .Where(item => item.CampaignId == campaign.Id &&
+                    (item.Status == CampaignQueueStatus.Pending ||
+                     item.Status == CampaignQueueStatus.Processing ||
+                     item.Status == CampaignQueueStatus.RetryScheduled))
+                .Count() * creditCost;
+            var availableCredits = Math.Min(client.Credits, creator.Credits) - reservedCreditCount;
+            availableQueueSlots = Math.Max(0, (int)(availableCredits / creditCost));
         }
 
-        var creditCost = Math.Max(1, client.CreditCostPerMessage);
-        var reservedCreditCount = queueRepository.Query()
-            .Where(item => item.CampaignId == campaign.Id &&
-                (item.Status == CampaignQueueStatus.Pending ||
-                 item.Status == CampaignQueueStatus.Processing ||
-                 item.Status == CampaignQueueStatus.RetryScheduled))
-            .Count() * creditCost;
-        var availableCredits = Math.Min(client.Credits, creator.Credits) - reservedCreditCount;
-        var availableQueueSlots = Math.Max(0, availableCredits / creditCost);
-
-        var existingContactIds = queueRepository.Query()
+        var existingQueueItems = queueRepository.Query()
             .Where(item => item.CampaignId == campaign.Id)
-            .Select(item => item.ContactId)
-            .ToHashSet();
+            .ToDictionary(item => item.ContactId);
 
-        var contactsToQueue = contacts.Where(contact => !existingContactIds.Contains(contact.Id)).ToArray();
-        foreach (var contact in contactsToQueue)
+        var contactsToProcess = contacts.Where(contact => !existingQueueItems.ContainsKey(contact.Id)).ToArray();
+        
+        foreach (var contact in contactsToProcess)
         {
             if (availableQueueSlots <= 0)
             {
@@ -438,6 +309,7 @@ public sealed class CampaignService : ICampaignService
                 continue;
             }
 
+            /* Temporarily disabled capability check
             if (campaign.IsRCSEnabled)
             {
                 var capability = await CheckRcsCapabilityAsync(client, contact.MobileNumber, cancellationToken);
@@ -456,6 +328,7 @@ public sealed class CampaignService : ICampaignService
                     continue;
                 }
             }
+            */
 
             await queueRepository.AddAsync(new CampaignQueueItem
             {
@@ -464,7 +337,9 @@ public sealed class CampaignService : ICampaignService
                 Status = CampaignQueueStatus.Pending,
                 NextAttemptAt = DateTimeOffset.UtcNow
             }, cancellationToken);
-            availableQueueSlots--;
+            
+            contact.Status = ContactStatus.Pending;
+            if (!isAdmin) availableQueueSlots--;
         }
 
         campaign.Status = CampaignStatus.Queued;
@@ -476,58 +351,51 @@ public sealed class CampaignService : ICampaignService
     public async Task<CampaignOperationResult> RetryFailedAsync(int campaignId, CancellationToken cancellationToken)
     {
         var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
-        if (campaign is null)
-        {
-            return CampaignOperationResult.Failed("Campaign not found.");
-        }
+        if (campaign is null) return CampaignOperationResult.Failed("Campaign not found.");
+        if (campaign.Status == CampaignStatus.Paused) return CampaignOperationResult.Failed("Campaign is disabled.");
 
-        if (campaign.Status == CampaignStatus.Paused)
-        {
-            return CampaignOperationResult.Failed("Campaign is disabled.");
-        }
-
-        var scopeError = ValidateClientScope(campaign.ClientId);
-        if (scopeError is not null)
-        {
-            return CampaignOperationResult.Failed(scopeError);
-        }
-
-        var queueRepository = _unitOfWork.Repository<CampaignQueueItem>();
-        var failedItems = queueRepository.Query()
-            .Where(item => item.CampaignId == campaign.Id && item.Status == CampaignQueueStatus.Failed)
+        var failedContactIds = _unitOfWork.Repository<Contact>().Query()
+            .Where(c => c.CampaignId == campaignId && c.Status == ContactStatus.Failed)
+            .Select(c => c.Id)
             .ToArray();
 
-        if (failedItems.Length == 0)
+        if (failedContactIds.Length == 0)
         {
-            return CampaignOperationResult.Failed("No failed contacts found to retry.");
+            failedContactIds = _unitOfWork.Repository<CampaignQueueItem>().Query()
+                .Where(item => item.CampaignId == campaignId && item.Status == CampaignQueueStatus.Failed)
+                .Select(item => item.ContactId)
+                .ToArray();
         }
 
-        var contacts = _unitOfWork.Repository<Contact>().Query()
-            .Where(contact => contact.CampaignId == campaign.Id)
+        if (failedContactIds.Length == 0) return CampaignOperationResult.Failed("No failed contacts found to retry.");
+
+        return await RetryContactsAsync(campaignId, failedContactIds, cancellationToken);
+    }
+
+    public async Task<CampaignOperationResult> RetryContactsAsync(int campaignId, int[] contactIds, CancellationToken cancellationToken)
+    {
+        var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
+        if (campaign is null) return CampaignOperationResult.Failed("Campaign not found.");
+
+        var contactRepository = _unitOfWork.Repository<Contact>();
+        var contactsToRetry = contactRepository.Query()
+            .Where(c => c.CampaignId == campaignId && contactIds.Contains(c.Id))
             .ToArray();
 
-        foreach (var item in failedItems)
+        if (contactsToRetry.Length == 0) return CampaignOperationResult.Failed("No contacts found to retry.");
+
+        foreach (var originalContact in contactsToRetry)
         {
-            var contact = contacts.SingleOrDefault(value => value.Id == item.ContactId);
-            if (contact is null)
+            await contactRepository.AddAsync(new Contact
             {
-                continue;
-            }
-
-            item.Status = CampaignQueueStatus.Pending;
-            item.AttemptCount = 0;
-            item.LastError = null;
-            item.LockedAt = null;
-            item.LockedBy = null;
-            item.NextAttemptAt = DateTimeOffset.UtcNow;
-            item.ProcessedAt = null;
-            contact.Status = ContactStatus.Pending;
+                CampaignId = campaignId,
+                MobileNumber = originalContact.MobileNumber,
+                Status = ContactStatus.Pending
+            }, cancellationToken);
         }
 
-        campaign.Status = CampaignStatus.Queued;
-        _unitOfWork.Repository<Campaign>().Update(campaign);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return CampaignOperationResult.Success(campaign.Id);
+        return await QueueCampaignAsync(campaignId, cancellationToken);
     }
 
     public async Task<CampaignOperationResult> DeleteContactsAsync(int campaignId, int[] contactIds, CancellationToken cancellationToken)
@@ -556,51 +424,44 @@ public sealed class CampaignService : ICampaignService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return CampaignOperationResult.Success(campaign.Id);
     }
-    
-    public async Task<CampaignOperationResult> RetryContactsAsync(int campaignId, int[] contactIds, CancellationToken cancellationToken)
+
+    public async Task<CampaignOperationResult> DisableCampaignAsync(int campaignId, CancellationToken cancellationToken)
     {
         var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
         if (campaign is null) return CampaignOperationResult.Failed("Campaign not found.");
-        if (campaign.Status == CampaignStatus.Paused) return CampaignOperationResult.Failed("Campaign is disabled.");
 
-        var queueRepository = _unitOfWork.Repository<CampaignQueueItem>();
-        var items = queueRepository.Query()
-            .Where(item => item.CampaignId == campaignId && contactIds.Contains(item.ContactId))
-            .ToArray();
-
-        var contacts = _unitOfWork.Repository<Contact>().Query()
-            .Where(c => c.CampaignId == campaignId && contactIds.Contains(c.Id))
-            .ToArray();
-
-        foreach (var item in items)
-        {
-            var contact = contacts.SingleOrDefault(c => c.Id == item.ContactId);
-            if (contact is null) continue;
-
-            item.Status = CampaignQueueStatus.Pending;
-            item.AttemptCount = 0;
-            item.LastError = null;
-            item.LockedAt = null;
-            item.LockedBy = null;
-            item.NextAttemptAt = DateTimeOffset.UtcNow;
-            item.ProcessedAt = null;
-            contact.Status = ContactStatus.Pending;
-        }
-
-        campaign.Status = CampaignStatus.Queued;
+        campaign.Status = CampaignStatus.Paused;
         _unitOfWork.Repository<Campaign>().Update(campaign);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return CampaignOperationResult.Success(campaign.Id);
     }
 
+    public async Task<CampaignOperationResult> DeleteCampaignAsync(int campaignId, CancellationToken cancellationToken)
+    {
+        var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
+        if (campaign is null) return CampaignOperationResult.Failed("Campaign not found.");
+
+        RemoveRelated<CampaignQueueItem>(item => item.CampaignId == campaignId);
+        RemoveRelated<MessageLog>(log => log.CampaignId == campaignId);
+        RemoveRelated<Report>(report => report.CampaignId == campaignId);
+        RemoveRelated<Contact>(contact => contact.CampaignId == campaignId);
+        RemoveRelated<CampaignMessage>(message => message.CampaignId == campaignId);
+        _unitOfWork.Repository<Campaign>().Remove(campaign);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return CampaignOperationResult.Success(campaignId);
+    }
+
+    private void RemoveRelated<TEntity>(Func<TEntity, bool> predicate) where TEntity : BaseEntity
+    {
+        var repository = _unitOfWork.Repository<TEntity>();
+        var items = repository.Query().Where(predicate).ToArray();
+        foreach (var item in items) repository.Remove(item);
+    }
+
     private string? ValidateClientScope(int clientId)
     {
-        if (string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        return _currentUser.ClientId == clientId ? null : "Client is outside the current user's scope.";
+        if (string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase)) return null;
+        return _currentUser.ClientId == clientId ? null : "Client is outside scope.";
     }
 
     private bool IsAdmin() => string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
@@ -617,65 +478,12 @@ public sealed class CampaignService : ICampaignService
 
     private async Task<CapabilityCheckOutcome> CheckRcsCapabilityAsync(Client client, string phoneNumber, CancellationToken cancellationToken)
     {
-        if (_jioCxClient is null || _secretProtector is null)
-        {
-            return new(true, string.Empty);
-        }
-
+        if (_jioCxClient is null || _secretProtector is null) return new(true, string.Empty);
         var apiKey = _secretProtector.Unprotect(client.ApiKey);
         var result = await _jioCxClient.CheckCapabilityAsync(apiKey, client.AgentId, phoneNumber, cancellationToken);
-        var response = result.ResponseJson.ToLowerInvariant();
-        var isCapable = result.Succeeded &&
-            !response.Contains("false") &&
-            !response.Contains("notcapable") &&
-            !response.Contains("not_capable");
-
-        if (isCapable)
-        {
-            return new(true, string.Empty);
-        }
-
-        var errorMessage = result.Succeeded
-            ? "JioCX capability response did not mark this number as RCS capable."
-            : $"JioCX capability API failed (HTTP {result.StatusCode}).";
-
-        var requestPayload = JsonSerializer.Serialize(new Dictionary<string, IReadOnlyList<string>>
-        {
-            ["PhoneNumbers"] = [phoneNumber]
-        });
-
-        return new(false, ApiDiagnostics.Create(
-            errorMessage,
-            $"x-apikey: {MaskSecret(apiKey)}{Environment.NewLine}agentid: {client.AgentId}{Environment.NewLine}Content-Type: application/json",
-            requestPayload,
-            result.StatusCode.ToString(),
-            result.ResponseJson));
-    }
-
-    private static string MaskSecret(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "***EMPTY***";
-        }
-
-        return value.Length <= 4 ? "***MASKED***" : $"***MASKED***{value[^4..]}";
+        if (result.Succeeded) return new(true, string.Empty);
+        return new(false, "Not capable");
     }
 
     private sealed record CapabilityCheckOutcome(bool IsCapable, string DiagnosticJson);
-
-    private static class ApiDiagnostics
-    {
-        public static string Create(string errorMessage, string requestHeaders, string requestPayload, string responseStatusCode, string responseBody)
-        {
-            return JsonSerializer.Serialize(new
-            {
-                errorMessage,
-                requestHeaders,
-                requestPayload,
-                responseStatusCode,
-                responseBody
-            });
-        }
-    }
 }

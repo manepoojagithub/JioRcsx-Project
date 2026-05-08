@@ -33,5 +33,7 @@ public sealed class EditClientViewModel
     [EmailAddress]
     public string? ManagerEmail { get; set; }
 
+    public string? ManagerPassword { get; set; }
+
     public bool WebhookAuditEnabled { get; set; }
 }

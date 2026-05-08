@@ -74,6 +74,21 @@ public sealed class ClientOnboardingService : IClientOnboardingService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _auditService.LogAsync(adminUserId, $"Created client {client.BrandName}", "Clients", cancellationToken);
 
+        if (client.Credits > 0)
+        {
+            await _unitOfWork.Repository<UserCreditHistory>().AddAsync(new UserCreditHistory
+            {
+                UserId = manager.Id,
+                Amount = client.Credits,
+                PreviousBalance = 0,
+                NewBalance = client.Credits,
+                TransactionType = "Added",
+                Reason = "Initial credits during onboarding",
+                CreatedAt = DateTimeOffset.UtcNow
+            }, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
         return client.Id;
     }
 
@@ -110,7 +125,7 @@ public sealed class ClientOnboardingService : IClientOnboardingService
         if (client is null) return null;
 
         var manager = _unitOfWork.Repository<User>().Query().FirstOrDefault(u => u.ClientId == client.Id);
-        return new ClientDetails(client.Id, client.BrandName, client.AgentName, client.AgentId, client.SiteName, client.LogoPath, client.Credits, client.CreditCostPerMessage, client.LowCreditThreshold, manager?.Email, client.WebhookAuditEnabled);
+        return new ClientDetails(client.Id, client.BrandName, client.AgentName, client.AgentId, client.SiteName, client.LogoPath, client.Credits, client.CreditCostPerMessage, client.LowCreditThreshold, manager?.Email, client.WebhookAuditEnabled, manager?.PlainTextPassword, client.ApiKey);
     }
 
     public async Task UpdateAsync(UpdateClientRequest request, CancellationToken cancellationToken = default)
@@ -123,6 +138,28 @@ public sealed class ClientOnboardingService : IClientOnboardingService
             throw new InvalidOperationException("Brand name already exists.");
         }
 
+        if (client.Credits != request.Credits)
+        {
+            var previousBalance = client.Credits;
+            client.Credits = Math.Max(0, request.Credits);
+            
+            // Log history for all users belonging to this client so it shows up in everyone's panel
+            var users = _unitOfWork.Repository<User>().Query().Where(u => u.ClientId == client.Id).ToArray();
+            foreach (var user in users)
+            {
+                await _unitOfWork.Repository<UserCreditHistory>().AddAsync(new UserCreditHistory
+                {
+                    UserId = user.Id,
+                    Amount = Math.Abs(client.Credits - previousBalance),
+                    PreviousBalance = previousBalance,
+                    NewBalance = client.Credits,
+                    TransactionType = client.Credits > previousBalance ? "Added" : "Adjustment",
+                    Reason = "Manual credit update by Administrator",
+                    CreatedAt = DateTimeOffset.UtcNow
+                }, cancellationToken);
+            }
+        }
+
         client.BrandName = request.BrandName.Trim();
         client.AgentName = request.AgentName.Trim();
         if (!IsMaskedValue(request.AgentId))
@@ -131,7 +168,6 @@ public sealed class ClientOnboardingService : IClientOnboardingService
         }
         client.SiteName = request.SiteName.Trim();
         client.LogoPath = request.LogoPath;
-        client.Credits = Math.Max(0, request.Credits);
         client.CreditCostPerMessage = Math.Max(1, request.CreditCostPerMessage);
         client.LowCreditThreshold = Math.Max(0, request.LowCreditThreshold);
         client.WebhookAuditEnabled = request.WebhookAuditEnabled;

@@ -27,6 +27,35 @@
     </article>
 </section>
 
+<section class="panel-card mb-4">
+    <div class="panel-card-header">
+        <div>
+            <h2>Filters</h2>
+            <p>Filter clients by brand, agent, agent ID, or site.</p>
+        </div>
+    </div>
+    <div class="p-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Brand Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="BrandName" value="@ViewContext.HttpContext.Request.Query["BrandName"]" placeholder="Filter by brand..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Agent Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="AgentName" value="@ViewContext.HttpContext.Request.Query["AgentName"]" placeholder="Filter by agent..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Agent ID</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="AgentId" value="@ViewContext.HttpContext.Request.Query["AgentId"]" placeholder="Filter by ID..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Site Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="SiteName" value="@ViewContext.HttpContext.Request.Query["SiteName"]" placeholder="Filter by site..." />
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="panel-card">
     <div class="panel-card-header">
         <div>
@@ -46,22 +75,10 @@
         <table class="table panel-table align-middle mb-0">
             <thead>
             <tr>
-                <th>
-                    Brand
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="BrandName" value="@ViewContext.HttpContext.Request.Query["BrandName"]" placeholder="Filter..." />
-                </th>
-                <th>
-                    Agent
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="AgentName" value="@ViewContext.HttpContext.Request.Query["AgentName"]" placeholder="Filter..." />
-                </th>
-                <th>
-                    Agent ID
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="AgentId" value="@ViewContext.HttpContext.Request.Query["AgentId"]" placeholder="Filter..." />
-                </th>
-                <th>
-                    Site
-                    <input type="text" class="form-control form-control-sm grid-filter" data-column="SiteName" value="@ViewContext.HttpContext.Request.Query["SiteName"]" placeholder="Filter..." />
-                </th>
+                <th>Brand</th>
+                <th>Agent</th>
+                <th>Agent ID</th>
+                <th>Site</th>
                 <th>Credits</th>
                 <th class="text-end action-cell">Actions</th>
             </tr>

@@ -89,16 +89,29 @@ public sealed class WebhookService : IWebhookService
         {
             using var document = JsonDocument.Parse(rawJson);
             var root = document.RootElement;
-            var eventRoot = root.TryGetProperty("event", out var nestedEvent) && nestedEvent.ValueKind == JsonValueKind.Object
-                ? nestedEvent
-                : root;
+            
+            // JioCX might wrap the event in an "event" or "data" object, or send it at root.
+            // We search multiple potential containers for the IDs.
+            var searchContainers = new List<JsonElement> { root };
+            if (root.TryGetProperty("event", out var eventObj) && eventObj.ValueKind == JsonValueKind.Object) searchContainers.Add(eventObj);
+            if (root.TryGetProperty("data", out var dataObj) && dataObj.ValueKind == JsonValueKind.Object) searchContainers.Add(dataObj);
+
+            int? campaignId = null;
+            int? contactId = null;
+
+            foreach (var container in searchContainers)
+            {
+                campaignId ??= TryGetInt(container, "campaignId") ?? TryGetInt(container, "campaignID");
+                contactId ??= TryGetInt(container, "contactId") ?? TryGetInt(container, "contactID");
+                if (campaignId.HasValue && contactId.HasValue) break;
+            }
 
             return new WebhookMap(
-                TryGetInt(eventRoot, "campaignId"),
-                TryGetInt(eventRoot, "contactId"),
+                campaignId,
+                contactId,
                 TryGetString(root, "messageId") ?? TryGetString(root, "messageID"),
-                TryGetString(eventRoot, "eventType") ?? TryGetString(root, "eventType"),
-                TryGetString(eventRoot, "status") ?? TryGetString(root, "status"),
+                TryGetString(root, "eventType") ?? TryGetString(root, "event_type"),
+                TryGetString(root, "status") ?? TryGetString(root, "messageStatus") ?? TryGetString(root, "status"),
                 rawJson);
         }
         catch (JsonException)

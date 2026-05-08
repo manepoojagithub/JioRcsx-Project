@@ -60,7 +60,10 @@
         <tr>
             <th>Name</th>
             <th>Email</th>
-            <th>Password</th>
+            @if (User.IsInRole("Admin"))
+            {
+                <th>Password</th>
+            }
             <th>Role</th>
             <th>Client</th>
             <th>Status</th>
@@ -75,7 +78,10 @@
             <tr>
                 <td>@user.Name</td>
                 <td>@user.Email</td>
-                <td>@user.Password</td>
+                @if (User.IsInRole("Admin"))
+                {
+                    <td><code>@user.Password</code></td>
+                }
                 <td>@user.Role</td>
                 <td>@(user.Client ?? "-")</td>
                 <td><span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">@(user.IsActive ? "Active" : "Inactive")</span></td>

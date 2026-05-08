@@ -24,4 +24,5 @@ public interface IPermissionService
 public interface IAuditService
 {
     Task LogAsync(int userId, string action, string module, CancellationToken cancellationToken = default);
+    Task LogAsync(int userId, string action, string module, string? requestPayload, string? responseJson, CancellationToken cancellationToken = default);
 }

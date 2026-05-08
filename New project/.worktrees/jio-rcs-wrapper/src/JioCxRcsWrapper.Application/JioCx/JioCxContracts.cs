@@ -8,7 +8,7 @@ public interface IJioCxClient
     Task<JioCxCapabilityResult> CheckCapabilityAsync(string apiKey, string agentId, string phoneNumber, CancellationToken cancellationToken);
 }
 
-public sealed record JioCxUploadResult(bool Succeeded, int StatusCode, string ResponseJson, string? PublicUrl);
+public sealed record JioCxUploadResult(bool Succeeded, int StatusCode, string ResponseJson, string? PublicUrl, string? RequestPayload = null);
 
 public sealed record JioCxSendRequest(
     string MessageId,
@@ -18,6 +18,6 @@ public sealed record JioCxSendRequest(
     object Data,
     object? SmsFallback = null);
 
-public sealed record JioCxSendResult(bool Succeeded, int StatusCode, string ResponseJson);
+public sealed record JioCxSendResult(bool Succeeded, int StatusCode, string ResponseJson, string? RequestPayload = null);
 
 public sealed record JioCxCapabilityResult(bool Succeeded, int StatusCode, string ResponseJson);

@@ -17,9 +17,9 @@
     @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-    <div class="row">
-        <div class="col-lg-7">
-            <section class="panel-card form-section">
+    <div class="row g-4">
+        <div class="col-md-6">
+            <section class="panel-card form-section h-100 mb-0">
                 <div class="panel-card-header">
                     <div>
                         <h2>Campaign Information</h2>
@@ -40,8 +40,9 @@
                     </div>
                 </div>
             </section>
-
-            <section class="panel-card form-section">
+        </div>
+        <div class="col-md-6">
+            <section class="panel-card form-section h-100 mb-0">
                 <div class="panel-card-header">
                     <div>
                         <h2>Send Rules</h2>
@@ -65,8 +66,9 @@
                     <div class="form-text">Uncheck this to skip JioCX RCS number verification before queueing.</div>
                 </div>
             </section>
-
-            <section class="panel-card form-section">
+        </div>
+        <div class="col-md-6">
+            <section class="panel-card form-section h-100 mb-0">
                 <div class="panel-card-header">
                     <div>
                         <h2>Message Template</h2>
@@ -89,8 +91,8 @@
                 </div>
             </section>
         </div>
-        <div class="col-lg-5">
-            <section class="panel-card form-section">
+        <div class="col-md-6">
+            <section class="panel-card form-section h-100 mb-0">
                 <div class="panel-card-header">
                     <div>
                         <h2>Message Preview</h2>
@@ -102,7 +104,8 @@
                     <div class="border rounded p-3 bg-light text-center text-muted">Select a template to see preview</div>
                 </div>
             </section>
-
+        </div>
+        <div class="col-md-12">
             <section class="panel-card form-section campaign-phone-panel">
                 <div class="panel-card-header">
                     <div>
@@ -112,7 +115,7 @@
                     <span class="section-count">05</span>
                 </div>
                 <label asp-for="PhoneNumbers" class="form-label">Phone Number(s)</label>
-                <textarea asp-for="PhoneNumbers" class="form-control" rows="7" placeholder="+918000000000, +918000000001"></textarea>
+                <textarea asp-for="PhoneNumbers" class="form-control" rows="5" placeholder="+918000000000, +918000000001"></textarea>
                 <div class="form-text">Separate by comma, semicolon, or new line. CSV upload remains available after creation.</div>
             </section>
         </div>
@@ -178,16 +181,16 @@
                     const content = payload.content;
 
                     if (content.plainText) {
-                        html += `<div class="p-3 border rounded bg-white shadow-sm" style="border-radius: 1.5rem !important; border-bottom-left-radius: 0.3rem !important; max-width: 90%;">${content.plainText.replace(/\n/g, '<br>')}</div>`;
+                        html += `<div class="p-3 border rounded bg-white shadow-sm" style="border-radius: 1.5rem !important; border-bottom-left-radius: 0.3rem !important;">${content.plainText.replace(/\n/g, '<br>')}</div>`;
                         renderSuggestions(content.suggestions, (sHtml) => html += sHtml);
                     } else if (content.richCardDetails && content.richCardDetails.standalone) {
                         const card = content.richCardDetails.standalone.content;
                         html += renderCard(card);
                     } else if (content.richCardDetails && content.richCardDetails.carousel) {
                         const carousel = content.richCardDetails.carousel;
-                        html += `<div class="d-flex overflow-auto pb-2 gap-2">`;
+                        html += `<div class="d-flex overflow-auto pb-2 gap-2" style="max-width: 100%;">`;
                         carousel.contents.forEach(card => {
-                            html += `<div style="min-width: 200px; max-width: 200px;">${renderCard(card)}</div>`;
+                            html += `<div style="min-width: 250px; max-width: 250px;">${renderCard(card)}</div>`;
                         });
                         html += `</div>`;
                     } else {

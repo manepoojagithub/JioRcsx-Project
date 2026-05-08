@@ -18,8 +18,10 @@ public sealed record CampaignSummary(
     bool IsDisabled = false)
 {
     public string QueueStatus => ContactCount == 0
-        ? Status.ToString()
-        : $"{CompletedCount} Delivered, {FailedCount} Failed out of {ContactCount}";
+        ? "0 / 0"
+        : $"{CompletedCount} / {ContactCount}";
+
+    public string QueueDetails => $"{CompletedCount} Sent, {FailedCount} Failed out of {ContactCount}";
 }
 
 public sealed record CampaignOperationResult(bool IsSuccess, int? Id, IReadOnlyList<string> Errors)

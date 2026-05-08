@@ -3,41 +3,48 @@ using JioCxRcsWrapper.Application.Clients;
 using JioCxRcsWrapper.Application.Common.Options;
 using JioCxRcsWrapper.Application.JioCx;
 using JioCxRcsWrapper.Application.Queue;
-using JioCxRcsWrapper.Domain.Entities;
 using JioCxRcsWrapper.Domain.Enums;
+using JioCxRcsWrapper.Domain.Entities;
 using JioCxRcsWrapper.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using JioCxRcsWrapper.Application.Common.Interfaces;
 
 namespace JioCxRcsWrapper.Infrastructure.Queue;
 
 public sealed class CampaignQueueWorker : BackgroundService
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly QueueOptions _options;
     private readonly ILogger<CampaignQueueWorker> _logger;
-    private readonly string _workerId = $"{Environment.MachineName}-{Guid.NewGuid():N}";
+    private readonly QueueOptions _options;
+    private readonly string _workerId;
 
-    public CampaignQueueWorker(IServiceScopeFactory scopeFactory, IOptions<QueueOptions> options, ILogger<CampaignQueueWorker> logger)
+    public CampaignQueueWorker(
+        IServiceProvider serviceProvider,
+        IServiceScopeFactory scopeFactory,
+        ILogger<CampaignQueueWorker> logger,
+        IOptions<QueueOptions> options)
     {
+        _serviceProvider = serviceProvider;
         _scopeFactory = scopeFactory;
-        _options = options.Value;
         _logger = logger;
+        _options = options.Value;
+        _workerId = $"{Environment.MachineName}:{Guid.NewGuid():N}";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("Campaign queue worker started (WorkerId: {WorkerId}).", _workerId);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                if (_options.Enabled)
-                {
-                    await ProcessBatchAsync(stoppingToken);
-                }
+                await ProcessBatchAsync(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -66,6 +73,10 @@ public sealed class CampaignQueueWorker : BackgroundService
             .Take(Math.Max(1, _options.BatchSize))
             .ToListAsync(cancellationToken);
 
+        if (items.Count == 0) return;
+
+        _logger.LogInformation("Processing batch of {Count} items.", items.Count);
+
         foreach (var item in items)
         {
             item.Status = CampaignQueueStatus.Processing;
@@ -77,7 +88,14 @@ public sealed class CampaignQueueWorker : BackgroundService
 
         foreach (var item in items)
         {
-            await ProcessItemAsync(db, jiocx, protector, retryPolicy, notifier, item, cancellationToken);
+            try
+            {
+                await ProcessItemAsync(db, jiocx, protector, retryPolicy, notifier, item, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing item {ItemId} in batch.", item.Id);
+            }
         }
     }
 
@@ -90,6 +108,7 @@ public sealed class CampaignQueueWorker : BackgroundService
         CampaignQueueItem item,
         CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Processing item {ItemId} for campaign {CampaignId}.", item.Id, item.CampaignId);
         var campaign = await db.Campaigns.FindAsync([item.CampaignId], cancellationToken);
         var contact = await db.Contacts.FindAsync([item.ContactId], cancellationToken);
         if (campaign is null || contact is null)
@@ -112,14 +131,15 @@ public sealed class CampaignQueueWorker : BackgroundService
         }
 
         var creditCost = Math.Max(1, client.CreditCostPerMessage);
-        var isAdmin = creator.RoleId == 1; // 1 is Admin role ID in SeedData
+        var isAdmin = creator.RoleId == 1; // Admin role ID
 
         if (!isAdmin && (client.Credits < creditCost || creator.Credits < creditCost))
         {
+            _logger.LogWarning("Insufficient credits for client {ClientId} or user {UserId}.", client.Id, creator.Id);
             item.Status = CampaignQueueStatus.Failed;
             item.LastError = "No credits available, contact support.";
             contact.Status = ContactStatus.Failed;
-            await AppendLogAsync(db, campaign.Id, contact.Id, "NoCredits", "NO_CREDITS", "No credits available, contact support.", cancellationToken);
+            await AppendLogAsync(db, campaign.Id, contact.Id, "NoCredits", "NO_CREDITS", "No credits available, contact support.", null, null, cancellationToken);
             await UpdateCampaignStatusAsync(db, campaign, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             return;
@@ -137,6 +157,7 @@ public sealed class CampaignQueueWorker : BackgroundService
                 messageID = messageId,
                 agentID = client.AgentId,
                 campaignID = campaign.Id.ToString(),
+                contactID = item.ContactId.ToString(),
                 contacts = new[] { contact.MobileNumber },
                 data,
                 data_sms = (object?)null
@@ -148,12 +169,14 @@ public sealed class CampaignQueueWorker : BackgroundService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "JioCX SendMessageAsync failed for item {ItemId}.", item.Id);
             payload = new { error = "Failed before request payload could be sent." };
             result = new JioCxSendResult(false, 500, ex.Message);
         }
 
         if (result.Succeeded)
         {
+            _logger.LogInformation("Successfully sent message for item {ItemId}.", item.Id);
             item.Status = CampaignQueueStatus.Succeeded;
             item.ProcessedAt = DateTimeOffset.UtcNow;
             item.LastError = null;
@@ -163,7 +186,14 @@ public sealed class CampaignQueueWorker : BackgroundService
             {
                 var previousBalance = client.Credits;
                 client.Credits = Math.Max(0, client.Credits - creditCost);
-                creator.Credits = Math.Max(0, creator.Credits - creditCost);
+                
+                // Sync all users of this client
+                var clientUsers = await db.Users.Where(u => u.ClientId == client.Id).ToListAsync(cancellationToken);
+                foreach (var cu in clientUsers)
+                {
+                    cu.Credits = client.Credits;
+                }
+
                 await db.UserCreditHistories.AddAsync(new UserCreditHistory
                 {
                     UserId = creator.Id,
@@ -176,18 +206,19 @@ public sealed class CampaignQueueWorker : BackgroundService
                 }, cancellationToken);
             }
 
-            await AppendLogAsync(db, campaign.Id, contact.Id, "Successfully Send", null, BuildSendDiagnostic("JioCX sendMessage accepted the request.", client, payload, result), cancellationToken);
+            await AppendLogAsync(db, campaign.Id, contact.Id, "Successfully Send", null, BuildSendDiagnostic("JioCX sendMessage accepted the request.", client, payload, result), result.RequestPayload, result.ResponseJson, cancellationToken);
             await UpsertReportAsync(db, campaign.Id, cancellationToken);
         }
         else
         {
+            _logger.LogWarning("JioCX sendMessage failed for item {ItemId} with code {StatusCode}.", item.Id, result.StatusCode);
             item.Status = retryPolicy.GetFailureStatus(result.StatusCode, item.AttemptCount, _options.MaxAttempts);
             item.LastError = result.ResponseJson;
             item.NextAttemptAt = item.Status == CampaignQueueStatus.RetryScheduled
                 ? retryPolicy.NextAttemptAt(DateTimeOffset.UtcNow, item.AttemptCount)
                 : null;
             contact.Status = item.Status == CampaignQueueStatus.Failed ? ContactStatus.Failed : contact.Status;
-            await AppendLogAsync(db, campaign.Id, contact.Id, item.Status.ToString(), result.StatusCode.ToString(), BuildSendDiagnostic($"JioCX sendMessage failed (HTTP {result.StatusCode}).", client, payload, result), cancellationToken);
+            await AppendLogAsync(db, campaign.Id, contact.Id, item.Status.ToString(), result.StatusCode.ToString(), BuildSendDiagnostic($"JioCX sendMessage failed (HTTP {result.StatusCode}).", client, payload, result), result.RequestPayload, result.ResponseJson, cancellationToken);
         }
 
         await UpdateCampaignStatusAsync(db, campaign, cancellationToken);
@@ -196,7 +227,7 @@ public sealed class CampaignQueueWorker : BackgroundService
         await notifier.DashboardUpdatedAsync(client.Id, new { campaignId = campaign.Id, status = contact.Status.ToString() }, cancellationToken);
     }
 
-    private static async Task AppendLogAsync(AppDbContext db, int campaignId, int contactId, string status, string? errorCode, string response, CancellationToken cancellationToken)
+    private static async Task AppendLogAsync(AppDbContext db, int campaignId, int contactId, string status, string? errorCode, string response, string? requestPayload, string? responseJson, CancellationToken cancellationToken)
     {
         await db.MessageLogs.AddAsync(new MessageLog
         {
@@ -205,6 +236,8 @@ public sealed class CampaignQueueWorker : BackgroundService
             Status = status,
             ErrorCode = errorCode,
             Response = response,
+            RequestPayload = requestPayload,
+            ResponseJson = responseJson,
             Timestamp = DateTimeOffset.UtcNow
         }, cancellationToken);
     }
@@ -235,19 +268,18 @@ public sealed class CampaignQueueWorker : BackgroundService
         if (queueItems.All(item => item.Status == CampaignQueueStatus.Succeeded))
         {
             campaign.Status = CampaignStatus.Completed;
-            return;
         }
-
-        if (queueItems.All(item => item.Status is CampaignQueueStatus.Succeeded or CampaignQueueStatus.Failed) &&
+        else if (queueItems.All(item => item.Status is CampaignQueueStatus.Succeeded or CampaignQueueStatus.Failed) &&
             queueItems.Any(item => item.Status == CampaignQueueStatus.Failed))
         {
             campaign.Status = CampaignStatus.Failed;
-            return;
         }
-
-        campaign.Status = queueItems.Any(item => item.Status == CampaignQueueStatus.Processing)
-            ? CampaignStatus.Processing
-            : CampaignStatus.Queued;
+        else
+        {
+            campaign.Status = queueItems.Any(item => item.Status == CampaignQueueStatus.Processing)
+                ? CampaignStatus.Processing
+                : CampaignStatus.Queued;
+        }
     }
 
     private static async Task UpsertReportAsync(AppDbContext db, int campaignId, CancellationToken cancellationToken)

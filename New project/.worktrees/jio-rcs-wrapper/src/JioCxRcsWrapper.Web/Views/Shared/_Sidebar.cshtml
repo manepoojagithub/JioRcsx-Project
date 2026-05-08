@@ -25,4 +25,8 @@
     {
         <a asp-controller="Reports" asp-action="Index"><span class="nav-icon">R</span><span class="nav-label">Reports</span></a>
     }
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-controller="AuditLogs" asp-action="Index"><span class="nav-icon">A</span><span class="nav-label">Audit Logs</span></a>
+    }
 </nav>

@@ -4,6 +4,7 @@ using JioCxRcsWrapper.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JioCxRcsWrapper.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260508185006_EnhanceAuditAndRetries")]
+    partial class EnhanceAuditAndRetries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -303,7 +306,8 @@ namespace JioCxRcsWrapper.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CampaignId", "MobileNumber");
+                    b.HasIndex("CampaignId", "MobileNumber")
+                        .IsUnique();
 
                     b.ToTable("Contacts");
                 });
@@ -326,14 +330,8 @@ namespace JioCxRcsWrapper.Infrastructure.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
-                    b.Property<string>("RequestPayload")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Response")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ResponseJson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")

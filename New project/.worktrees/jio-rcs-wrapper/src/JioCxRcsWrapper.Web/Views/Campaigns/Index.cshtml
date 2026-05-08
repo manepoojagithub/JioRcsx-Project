@@ -113,8 +113,8 @@
                     <td><span class="status-pill status-scheduled">@StatusLabels.For(campaign.Status)</span></td>
                     <td>@campaign.ContactCount</td>
                     <td>
-                        <a href="javascript:void(0)" class="status-pill status-active text-decoration-none queue-status-link" data-id="@campaign.Id">
-                            @campaign.QueueStatus
+                        <a href="javascript:void(0)" class="status-pill status-active text-decoration-none queue-status-link" data-id="@campaign.Id" title="@campaign.QueueDetails">
+                            <i class="bi bi-info-circle me-1"></i> @campaign.QueueStatus
                         </a>
                     </td>
                     <td>@(campaign.ScheduledAt?.ToLocalTime().ToString("g") ?? "-")</td>

@@ -28,6 +28,11 @@ public sealed class PagedResult<T> : IPagedResult
 
     public bool HasNextPage => PageNumber < TotalPages;
 
+    public static PagedResult<T> FromPaged(IReadOnlyList<T> items, int pageNumber, int pageSize, int totalItems)
+    {
+        return new PagedResult<T>(items, pageNumber, pageSize, totalItems);
+    }
+
     public static PagedResult<T> Create(IEnumerable<T> source, int pageNumber, int pageSize)
     {
         ArgumentNullException.ThrowIfNull(source);

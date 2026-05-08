@@ -51,3 +51,33 @@ function applyGridFilters() {
     url.searchParams.set('pageNumber', '1');
     window.location.href = url.toString();
 }
+
+function extractAjaxErrors(xhr, fallbackMessage) {
+    if (xhr.responseJSON && xhr.responseJSON.errors) {
+        return xhr.responseJSON.errors;
+    }
+
+    if (xhr.status === 401) {
+        return ["Your session expired. Please login again."];
+    }
+
+    if (xhr.status === 403) {
+        return ["Not allowed. Please check permissions for your role."];
+    }
+
+    if (xhr.status === 413) {
+        return ["The selected file is too large for the server upload limit."];
+    }
+
+    const responseText = (xhr.responseText || "")
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const detail = responseText ? ` ${responseText.slice(0, 300)}` : "";
+    const status = xhr.status ? ` HTTP ${xhr.status}` : " HTTP 0";
+    const statusText = xhr.statusText ? ` ${xhr.statusText}` : "";
+
+    return [`${fallbackMessage}${status}${statusText}.${detail}`.trim()];
+}

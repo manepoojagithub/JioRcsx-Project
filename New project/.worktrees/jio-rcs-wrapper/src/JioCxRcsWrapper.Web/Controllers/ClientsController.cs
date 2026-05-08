@@ -12,11 +12,13 @@ namespace JioCxRcsWrapper.Web.Controllers;
 public sealed class ClientsController : Controller
 {
     private readonly IClientOnboardingService _clients;
+    private readonly ISecretProtector _secretProtector;
     private readonly IWebHostEnvironment _environment;
 
-    public ClientsController(IClientOnboardingService clients, IWebHostEnvironment environment)
+    public ClientsController(IClientOnboardingService clients, ISecretProtector secretProtector, IWebHostEnvironment environment)
     {
         _clients = clients;
+        _secretProtector = secretProtector;
         _environment = environment;
     }
 
@@ -87,19 +89,26 @@ public sealed class ClientsController : Controller
             return NotFound();
         }
 
+        var unprotectedKey = string.Empty;
+        if (!string.IsNullOrWhiteSpace(client.ApiKey))
+        {
+            try { unprotectedKey = _secretProtector.Unprotect(client.ApiKey); } catch { }
+        }
+
         return View(new EditClientViewModel
         {
             Id = client.Id,
             BrandName = client.BrandName,
             AgentName = client.AgentName,
-            AgentId = MaskSecret(client.AgentId),
-            AgentKey = "********",
+            AgentId = client.AgentId,
+            AgentKey = unprotectedKey,
             SiteName = client.SiteName,
             LogoPath = client.LogoPath,
             Credits = client.Credits,
             CreditCostPerMessage = client.CreditCostPerMessage,
             LowCreditThreshold = client.LowCreditThreshold,
             ManagerEmail = client.ManagerEmail,
+            ManagerPassword = client.ManagerPassword,
             WebhookAuditEnabled = client.WebhookAuditEnabled
         });
     }

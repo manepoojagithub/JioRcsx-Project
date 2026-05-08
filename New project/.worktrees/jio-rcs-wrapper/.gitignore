@@ -7,3 +7,4 @@ obj/
 *.csproj.user
 src/JioCxRcsWrapper.Web/wwwroot/uploads/
 .env.production
+*.zip

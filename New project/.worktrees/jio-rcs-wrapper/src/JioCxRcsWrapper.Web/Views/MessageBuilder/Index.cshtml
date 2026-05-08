@@ -34,6 +34,37 @@
     <div class="alert alert-danger">@errorMessage</div>
 }
 
+<section class="panel-card mb-4">
+    <div class="panel-card-header">
+        <div>
+            <h2>Filters</h2>
+            <p>Filter templates by name, type, or client.</p>
+        </div>
+    </div>
+    <div class="p-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Template Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="Name" value="@ViewContext.HttpContext.Request.Query["Name"]" placeholder="Filter by name..." />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Message Type</label>
+                <select class="form-select form-select-sm grid-filter-select" data-column="Type">
+                    <option value="">All Types</option>
+                    @foreach (var type in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.MessageType>())
+                    {
+                        <option value="@type" selected="@(ViewContext.HttpContext.Request.Query["Type"] == type.ToString())">@type</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Client Name</label>
+                <input type="text" class="form-control form-control-sm grid-filter" data-column="ClientName" value="@ViewContext.HttpContext.Request.Query["ClientName"]" placeholder="Filter by client..." />
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="panel-card">
     <div class="panel-card-header">
         <div>
@@ -55,7 +86,9 @@
             <tbody>
             @foreach (var template in Model.Items)
             {
-                var previewUrl = template.LocalMediaPath;
+                var previewUrl = !string.IsNullOrWhiteSpace(template.LocalMediaPath) 
+                    ? template.LocalMediaPath 
+                    : template.RcsMediaUrl;
                 <tr>
                     <td class="fw-semibold">@template.Name</td>
                     <td><span class="status-pill status-scheduled">@template.MessageType</span></td>
@@ -64,7 +97,7 @@
                         @if (!string.IsNullOrWhiteSpace(previewUrl))
                         {
                             <a href="@previewUrl" target="_blank" class="btn btn-sm btn-outline-info" title="Preview Media">
-                                <i class="bi bi-image"></i>
+                                <i class="bi bi-eye"></i>
                             </a>
                         }
                         else

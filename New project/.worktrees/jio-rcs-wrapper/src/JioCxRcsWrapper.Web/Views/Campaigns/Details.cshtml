@@ -51,51 +51,17 @@
     <div class="col-lg-8">
         @if (Model.Template != null)
         {
-            var payload = JsonDocument.Parse(Model.Template.PayloadJson);
-            var content = payload.RootElement.GetProperty("content");
-
             <section class="panel-card shadow-lg mb-4">
                 <div class="panel-card-header">
                     <div>
-                        <h2>Message Content</h2>
-                        <p>Template used for this campaign.</p>
+                        <h2>Message Preview</h2>
+                        <p>Visual representation of the template used.</p>
                     </div>
                 </div>
-                <div class="p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Template Name</label>
-                        <div class="form-control-plaintext">@Model.Template.Name</div>
+                <div class="p-4 bg-light">
+                    <div id="template-preview" data-payload='@Model.Template.PayloadJson' data-type="@Model.Template.MessageType" data-name="@Model.Template.Name">
+                        <!-- Rendered via JS -->
                     </div>
-                    @if (Model.Template.MessageType == MessageType.PlainText)
-                    {
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Text</label>
-                            <div class="form-control-plaintext">@Html.Raw(content.GetProperty("plainText").GetString())</div>
-                        </div>
-                    }
-                    else if (Model.Template.MessageType == MessageType.RichCard)
-                    {
-                        var richCard = content.GetProperty("richCardDetails").GetProperty("standalone").GetProperty("content");
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Title</label>
-                            <div class="form-control-plaintext">@Html.Raw(richCard.GetProperty("cardTitle").GetString())</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Description</label>
-                            <div class="form-control-plaintext">@Html.Raw(richCard.GetProperty("cardDescription").GetString())</div>
-                        </div>
-                        @if (richCard.TryGetProperty("cardMedia", out var media) && media.GetProperty("contentInfo").TryGetProperty("fileUrl", out var fileUrl))
-                        {
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Media</label>
-                                <div>
-                                    <a href="@fileUrl.GetString()" target="_blank">
-                                        <img src="@fileUrl.GetString()" class="img-fluid" style="max-height: 200px;" />
-                                    </a>
-                                </div>
-                            </div>
-                        }
-                    }
                 </div>
             </section>
         }
@@ -106,9 +72,19 @@
                     <h2>Recipient Tracking</h2>
                     <p>Detailed status for every contact.</p>
                 </div>
+                <div class="d-flex gap-2">
+                    <input type="text" id="contact-search" class="form-control form-control-sm" placeholder="Search number..." style="width: 150px;" />
+                    <select id="contact-status-filter" class="form-select form-select-sm" style="width: 120px;">
+                        <option value="">All Status</option>
+                        <option value="Sent">Sent</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Failed">Failed</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
             </div>
             <div class="table-responsive" style="max-height: 500px;">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0" id="contacts-table">
                     <thead class="table-light sticky-top">
                         <tr>
                             <th>Mobile Number</th>
@@ -121,10 +97,10 @@
                         {
                             @foreach (var contact in Model.Contacts)
                             {
-                                <tr>
+                                <tr data-mobile="@contact.MobileNumber" data-status="@contact.StatusText">
                                     <td class="font-monospace">@contact.MobileNumber</td>
                                     <td>
-                                        <span class="badge bg-light @(contact.StatusText == "Delivered" || contact.StatusText == "Sent" ? "text-success" : (contact.StatusText == "Failed" ? "text-danger" : "text-secondary")) border">@contact.StatusText</span>
+                                        <span class="badge bg-light @(contact.StatusText == "Delivered" || contact.StatusText == "Sent" || contact.StatusText == "Opened" || contact.StatusText == "Clicked" ? "text-success" : (contact.StatusText == "Failed" ? "text-danger" : "text-secondary")) border">@contact.StatusText</span>
                                     </td>
                                     <td class="small text-muted font-monospace">@(contact.ErrorCode ?? "-")</td>
                                 </tr>
@@ -139,15 +115,6 @@
                                 </tr>
                             }
                         }
-                        else
-                        {
-                            <tr>
-                                <td colspan="3" class="text-center py-5 text-muted">
-                                    <i class="bi bi-people h1 d-block opacity-25"></i>
-                                    No contacts found for this campaign.
-                                </td>
-                            </tr>
-                        }
                     </tbody>
                 </table>
             </div>
@@ -158,4 +125,102 @@
 else
 {
     <div class="alert alert-danger">Campaign not found.</div>
+}
+
+@section Scripts {
+    <script>
+        (function() {
+            // Template Preview Logic
+            const previewEl = document.getElementById('template-preview');
+            if (previewEl) {
+                const payloadJson = previewEl.dataset.payload;
+                const messageType = previewEl.dataset.type;
+                const templateName = previewEl.dataset.name;
+                
+                try {
+                    const template = {
+                        name: templateName,
+                        messageType: messageType,
+                        payloadJson: payloadJson
+                    };
+                    renderPreview(template, previewEl);
+                } catch (e) {
+                    previewEl.innerHTML = '<div class="alert alert-danger">Error loading preview</div>';
+                }
+            }
+
+            function renderPreview(template, container) {
+                let html = `<div class="mb-3"><span class="badge bg-primary me-2">${template.messageType}</span><strong>${template.name}</strong></div>`;
+                try {
+                    const payload = JSON.parse(template.payloadJson);
+                    const content = payload.content;
+
+                    if (content.plainText) {
+                        html += `<div class="p-3 border rounded bg-white shadow-sm" style="border-radius: 1.5rem !important; border-bottom-left-radius: 0.3rem !important; max-width: 350px;">${content.plainText.replace(/\n/g, '<br>')}</div>`;
+                        renderSuggestions(content.suggestions, (sHtml) => html += sHtml);
+                    } else if (content.richCardDetails && content.richCardDetails.standalone) {
+                        html += `<div style="max-width: 350px;">${renderCard(content.richCardDetails.standalone.content)}</div>`;
+                    } else if (content.richCardDetails && content.richCardDetails.carousel) {
+                        html += `<div class="d-flex overflow-auto pb-2 gap-2">`;
+                        content.richCardDetails.carousel.contents.forEach(card => {
+                            html += `<div style="min-width: 250px; max-width: 250px;">${renderCard(card)}</div>`;
+                        });
+                        html += `</div>`;
+                    }
+                } catch (e) {
+                    html += `<pre class="small bg-white p-2 border rounded">${template.payloadJson}</pre>`;
+                }
+                container.innerHTML = html;
+            }
+
+            function renderCard(card) {
+                let cardHtml = `<div class="card shadow-sm border-0" style="border-radius: 1rem; overflow: hidden;">`;
+                if (card.cardMedia && card.cardMedia.contentInfo && card.cardMedia.contentInfo.fileUrl) {
+                    cardHtml += `<img src="${card.cardMedia.contentInfo.fileUrl}" class="card-img-top" style="height: 150px; object-fit: cover;">`;
+                }
+                cardHtml += `<div class="card-body p-3">`;
+                cardHtml += `<h6 class="card-title mb-1"><strong>${card.cardTitle}</strong></h6>`;
+                cardHtml += `<p class="card-text small text-muted">${card.cardDescription}</p>`;
+                cardHtml += `</div>`;
+                renderSuggestions(card.suggestions, (sHtml) => cardHtml += `<div class="p-2 border-top">${sHtml}</div>`);
+                cardHtml += `</div>`;
+                return cardHtml;
+            }
+
+            function renderSuggestions(suggestions, append) {
+                if (!suggestions || suggestions.length === 0) return;
+                let sHtml = `<div class="d-grid gap-1 mt-2">`;
+                suggestions.forEach(s => {
+                    const text = s.reply ? s.reply.plainText : s.action.plainText;
+                    sHtml += `<button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-1" style="font-size: 0.75rem;">${text}</button>`;
+                });
+                sHtml += `</div>`;
+                append(sHtml);
+            }
+
+            // Contact Filtering Logic
+            const searchInput = document.getElementById('contact-search');
+            const statusFilter = document.getElementById('contact-status-filter');
+            const tableRows = document.querySelectorAll('#contacts-table tbody tr');
+
+            function filterTable() {
+                const searchText = searchInput.value.toLowerCase();
+                const statusValue = statusFilter.value;
+
+                tableRows.forEach(row => {
+                    if (row.cells.length < 2) return;
+                    const mobile = row.dataset.mobile.toLowerCase();
+                    const status = row.dataset.status;
+                    
+                    const matchesSearch = !searchText || mobile.includes(searchText);
+                    const matchesStatus = !statusValue || status === statusValue;
+                    
+                    row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+                });
+            }
+
+            searchInput.addEventListener('input', filterTable);
+            statusFilter.addEventListener('change', filterTable);
+        })();
+    </script>
 }

@@ -16,7 +16,7 @@ public sealed record CreateClientRequest(
 
 public sealed record ClientSummary(int Id, string BrandName, string AgentName, string AgentId, string SiteName, int Credits, int CreditCostPerMessage, int LowCreditThreshold);
 
-public sealed record ClientDetails(int Id, string BrandName, string AgentName, string AgentId, string SiteName, string? LogoPath, int Credits, int CreditCostPerMessage, int LowCreditThreshold, string? ManagerEmail = null, bool WebhookAuditEnabled = false);
+public sealed record ClientDetails(int Id, string BrandName, string AgentName, string AgentId, string SiteName, string? LogoPath, int Credits, int CreditCostPerMessage, int LowCreditThreshold, string? ManagerEmail = null, bool WebhookAuditEnabled = false, string? ManagerPassword = null, string? ApiKey = null);
 
 public sealed record UpdateClientRequest(
     int Id,

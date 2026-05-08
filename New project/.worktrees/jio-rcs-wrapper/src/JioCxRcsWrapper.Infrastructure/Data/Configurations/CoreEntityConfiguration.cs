@@ -69,7 +69,7 @@ public sealed class ContactConfiguration : IEntityTypeConfiguration<Contact>
     public void Configure(EntityTypeBuilder<Contact> builder)
     {
         builder.Property(x => x.MobileNumber).HasMaxLength(20).IsRequired();
-        builder.HasIndex(x => new { x.CampaignId, x.MobileNumber }).IsUnique();
+        builder.HasIndex(x => new { x.CampaignId, x.MobileNumber });
     }
 }
 
