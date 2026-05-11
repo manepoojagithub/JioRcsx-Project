@@ -132,6 +132,8 @@ internal sealed class FakeSecretProtector : ISecretProtector
 internal sealed class NoopAuditService : IAuditService
 {
     public Task LogAsync(int userId, string action, string module, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task LogAsync(int userId, string action, string module, string? requestPayload, string? responseJson, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 internal sealed class ClientTestUnitOfWork : IUnitOfWork
@@ -139,6 +141,7 @@ internal sealed class ClientTestUnitOfWork : IUnitOfWork
     public List<Client> Clients { get; } = [];
     public List<ClientBrandingSetting> BrandingSettings { get; } = [];
     public List<User> Users { get; } = [];
+    public List<UserCreditHistory> UserCreditHistories { get; } = [];
     public List<Role> Roles { get; } = [new Role { Id = 1, Name = "Admin" }, new Role { Id = 2, Name = "Manager" }];
 
     public static ClientTestUnitOfWork Create() => new();
@@ -148,6 +151,7 @@ internal sealed class ClientTestUnitOfWork : IUnitOfWork
         if (typeof(TEntity) == typeof(Client)) return (IRepository<TEntity>)(object)new MutableListRepository<Client>(Clients);
         if (typeof(TEntity) == typeof(ClientBrandingSetting)) return (IRepository<TEntity>)(object)new MutableListRepository<ClientBrandingSetting>(BrandingSettings);
         if (typeof(TEntity) == typeof(User)) return (IRepository<TEntity>)(object)new MutableListRepository<User>(Users);
+        if (typeof(TEntity) == typeof(UserCreditHistory)) return (IRepository<TEntity>)(object)new MutableListRepository<UserCreditHistory>(UserCreditHistories);
         if (typeof(TEntity) == typeof(Role)) return (IRepository<TEntity>)(object)new MutableListRepository<Role>(Roles);
         throw new NotSupportedException(typeof(TEntity).Name);
     }

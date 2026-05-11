@@ -58,7 +58,25 @@ public sealed class PermissionManagementServiceTests
 
     private sealed class NoopAuditService : IAuditService
     {
-        public Task LogAsync(int userId, string action, string module, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task LogAsync(
+            int userId,
+            string action,
+            string module,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task LogAsync(
+            int userId,
+            string action,
+            string module,
+            string? requestPayload,
+            string? responseJson,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class PermissionManagementUnitOfWork : IUnitOfWork

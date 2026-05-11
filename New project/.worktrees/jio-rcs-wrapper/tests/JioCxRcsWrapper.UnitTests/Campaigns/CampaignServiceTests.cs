@@ -17,6 +17,7 @@ public sealed class CampaignServiceTests
     public async Task UploadContacts_WithMoreThan50Rows_IsAccepted()
     {
         var harness = CampaignHarness.CreateManager(clientId: 10);
+        harness.AddClient(10);
         var campaign = harness.AddCampaign(10);
         var csv = "MobileNumber\r\n" + string.Join("\r\n", Enumerable.Range(1, 51).Select(index => $"+91800000{index:000}"));
 
@@ -59,6 +60,7 @@ public sealed class CampaignServiceTests
     public async Task UploadContacts_SkipsDuplicateNumbersAlreadyInCampaign()
     {
         var harness = CampaignHarness.CreateManager(clientId: 10);
+        harness.AddClient(10);
         var campaign = harness.AddCampaign(10);
         harness.AddContact(campaign.Id, "+918000000000");
 
@@ -94,6 +96,32 @@ public sealed class CampaignServiceTests
         failedItem.AttemptCount.Should().Be(0);
         failedContact.Status.Should().Be(ContactStatus.Pending);
         harness.QueueItems.Single(item => item.ContactId == succeededContact.Id).Status.Should().Be(CampaignQueueStatus.Succeeded);
+    }
+
+    [Fact]
+    public async Task RetryContacts_QueuesOnlySelectedContacts()
+    {
+        var harness = CampaignHarness.CreateManager(clientId: 10);
+        harness.AddClient(10);
+        var campaign = harness.AddCampaign(10, isRcsEnabled: false);
+        var selectedContact = harness.AddContact(campaign.Id, "+918000000000");
+        var unselectedContact = harness.AddContact(campaign.Id, "+918000000001");
+        var selectedFailedItem = harness.AddQueueItem(campaign.Id, selectedContact.Id, CampaignQueueStatus.Failed);
+        var unselectedFailedItem = harness.AddQueueItem(campaign.Id, unselectedContact.Id, CampaignQueueStatus.Failed);
+        selectedContact.Status = ContactStatus.Failed;
+        unselectedContact.Status = ContactStatus.Failed;
+
+        var result = await harness.Service.RetryContactsAsync(campaign.Id, [selectedContact.Id], CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        selectedFailedItem.Status.Should().Be(CampaignQueueStatus.Failed);
+        unselectedFailedItem.Status.Should().Be(CampaignQueueStatus.Failed);
+        harness.QueueItems.Should().ContainSingle(item =>
+            item.Status == CampaignQueueStatus.Pending &&
+            item.ContactId != selectedContact.Id &&
+            item.ContactId != unselectedContact.Id);
+        harness.Contacts.Where(contact => contact.MobileNumber == selectedContact.MobileNumber).Should().HaveCount(2);
+        harness.Contacts.Where(contact => contact.MobileNumber == unselectedContact.MobileNumber).Should().ContainSingle();
     }
 
     [Fact]

@@ -182,18 +182,27 @@ public sealed class CampaignQueueWorker : BackgroundService
             item.LastError = null;
             contact.Status = ContactStatus.Sent;
 
-            if (!isAdmin)
-            {
-                var previousBalance = client.Credits;
-                client.Credits = Math.Max(0, client.Credits - creditCost);
-                
-                // Sync all users of this client
-                var clientUsers = await db.Users.Where(u => u.ClientId == client.Id).ToListAsync(cancellationToken);
-                foreach (var cu in clientUsers)
-                {
-                    cu.Credits = client.Credits;
-                }
+            var previousBalance = client.Credits;
+            client.Credits = Math.Max(0, client.Credits - creditCost);
 
+            var clientUsers = await db.Users.Where(u => u.ClientId == client.Id).ToListAsync(cancellationToken);
+            foreach (var cu in clientUsers)
+            {
+                cu.Credits = client.Credits;
+                await db.UserCreditHistories.AddAsync(new UserCreditHistory
+                {
+                    UserId = cu.Id,
+                    Amount = creditCost,
+                    PreviousBalance = previousBalance,
+                    NewBalance = client.Credits,
+                    TransactionType = "Spent",
+                    Reason = $"Message sent to {contact.MobileNumber} (Campaign: {campaign.Name})",
+                    CreatedAt = DateTimeOffset.UtcNow
+                }, cancellationToken);
+            }
+
+            if (clientUsers.Count == 0)
+            {
                 await db.UserCreditHistories.AddAsync(new UserCreditHistory
                 {
                     UserId = creator.Id,

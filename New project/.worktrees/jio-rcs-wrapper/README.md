@@ -40,9 +40,9 @@ Change this immediately in production.
 
 Only the APIs present in the provided UAT document are implemented:
 
-- `POST https://rcsapi-uat.jiocx.com/api/v1/uploadFile`
-- `POST https://rcsapi-uat.jiocx.com/api/v1/sendMessage`
-- `POST https://rcsapi-uat.jiocx.com/api/v1/checkCapability`
+- `POST https://rcsapi.jiocx.com/api/v1/uploadFile`
+- `POST https://rcsapi.jiocx.com/api/v1/sendMessage`
+- `POST https://rcsapi.jiocx.com/api/v1/checkCapability`
 
 The app does not implement undocumented onboarding or tester APIs. Dialer, calendar, and location CTAs are visible as draft choices but blocked from send payload generation because the document does not define their payload schema.
 

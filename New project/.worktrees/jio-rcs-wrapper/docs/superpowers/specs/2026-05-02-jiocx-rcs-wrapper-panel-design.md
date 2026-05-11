@@ -10,9 +10,9 @@ The implementation must use only the APIs documented in `C:\Users\usern\Download
 
 Documented JioCX UAT endpoints:
 
-- `POST https://rcsapi-uat.jiocx.com/api/v1/uploadFile`
-- `POST https://rcsapi-uat.jiocx.com/api/v1/sendMessage`
-- `POST https://rcsapi-uat.jiocx.com/api/v1/checkCapability`
+- `POST https://rcsapi.jiocx.com/api/v1/uploadFile`
+- `POST https://rcsapi.jiocx.com/api/v1/sendMessage`
+- `POST https://rcsapi.jiocx.com/api/v1/checkCapability`
 
 The product must not implement or call undocumented JioCX APIs. Brand onboarding is handled outside the API through JioCX forms/email. Tester management is not implemented because the document states that the tester API is "Coming soon". The panel stores supplied Agent ID and API key after onboarding, but does not call a JioCX onboarding API.
 

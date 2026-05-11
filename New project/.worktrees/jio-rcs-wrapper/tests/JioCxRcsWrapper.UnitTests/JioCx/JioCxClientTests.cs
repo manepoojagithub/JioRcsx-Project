@@ -3,6 +3,7 @@ using System.Text.Json;
 using FluentAssertions;
 using JioCxRcsWrapper.Application.Common.Options;
 using JioCxRcsWrapper.Application.JioCx;
+using JioCxRcsWrapper.Application.Security;
 using JioCxRcsWrapper.Infrastructure.JioCx;
 using Microsoft.Extensions.Options;
 
@@ -10,6 +11,14 @@ namespace JioCxRcsWrapper.UnitTests.JioCx;
 
 public sealed class JioCxClientTests
 {
+    [Fact]
+    public void DefaultOptions_UseConfiguredProductionBaseUrl()
+    {
+        var options = new JioCxOptions();
+
+        options.BaseUrl.Should().Be("https://rcsapi.jiocx.com");
+    }
+
     [Fact]
     public async Task UploadFile_SendsDocumentedMultipartRequest()
     {
@@ -155,10 +164,26 @@ public sealed class JioCxClientTests
 
     private static JioCxClient CreateClient(HttpMessageHandler handler)
     {
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://rcsapi-uat.jiocx.com") };
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://rcsapi.jiocx.com") };
         var options = Options.Create(new JioCxOptions());
-        return new JioCxClient(httpClient, options);
+        return new JioCxClient(httpClient, options, new NoopAuditService(), new FakeCurrentUser());
     }
+}
+
+internal sealed class NoopAuditService : IAuditService
+{
+    public Task LogAsync(int userId, string action, string module, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task LogAsync(int userId, string action, string module, string? requestPayload, string? responseJson, CancellationToken cancellationToken = default) => Task.CompletedTask;
+}
+
+internal sealed class FakeCurrentUser : ICurrentUser
+{
+    public int UserId => 7;
+    public string Role => "Developer";
+    public int? ClientId => null;
+    public bool IsAuthenticated => true;
+    public bool IsDeveloper => true;
 }
 
 internal sealed class CaptureHandler : HttpMessageHandler

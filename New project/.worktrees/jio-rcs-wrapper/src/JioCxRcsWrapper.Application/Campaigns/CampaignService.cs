@@ -246,6 +246,9 @@ public sealed class CampaignService : ICampaignService
     }
 
     public async Task<CampaignOperationResult> QueueCampaignAsync(int campaignId, CancellationToken cancellationToken)
+        => await QueueCampaignAsync(campaignId, cancellationToken, null);
+
+    private async Task<CampaignOperationResult> QueueCampaignAsync(int campaignId, CancellationToken cancellationToken, IReadOnlySet<int>? eligibleContactIds)
     {
         var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(campaignId, cancellationToken);
         if (campaign is null) return CampaignOperationResult.Failed("Campaign not found.");
@@ -258,11 +261,20 @@ public sealed class CampaignService : ICampaignService
         if (client is null) client = _unitOfWork.Repository<Client>().Query().FirstOrDefault(c => c.Id == campaign.ClientId);
         if (client is null) return CampaignOperationResult.Failed($"Client not found (ID: {campaign.ClientId}).");
 
-        var contactRepository = _unitOfWork.Repository<Contact>();
         var queueRepository = _unitOfWork.Repository<CampaignQueueItem>();
+        var existingQueueItems = queueRepository.Query()
+            .Where(item => item.CampaignId == campaign.Id)
+            .ToDictionary(item => item.ContactId);
+        var failedQueueContactIds = existingQueueItems.Values
+            .Where(item => item.Status == CampaignQueueStatus.Failed &&
+                (eligibleContactIds == null || eligibleContactIds.Contains(item.ContactId)))
+            .Select(item => item.ContactId)
+            .ToHashSet();
 
         var contacts = _unitOfWork.Repository<Contact>().Query()
-            .Where(c => c.CampaignId == campaign.Id && c.Status == ContactStatus.Pending)
+            .Where(c => c.CampaignId == campaign.Id &&
+                (eligibleContactIds == null || eligibleContactIds.Contains(c.Id)) &&
+                (c.Status == ContactStatus.Pending || failedQueueContactIds.Contains(c.Id)))
             .ToArray();
 
         if (contacts.Length == 0) return CampaignOperationResult.Failed("No pending contacts found.");
@@ -286,9 +298,24 @@ public sealed class CampaignService : ICampaignService
             availableQueueSlots = Math.Max(0, (int)(availableCredits / creditCost));
         }
 
-        var existingQueueItems = queueRepository.Query()
-            .Where(item => item.CampaignId == campaign.Id)
-            .ToDictionary(item => item.ContactId);
+        foreach (var failedItem in existingQueueItems.Values.Where(item =>
+            item.Status == CampaignQueueStatus.Failed &&
+            (eligibleContactIds == null || eligibleContactIds.Contains(item.ContactId))))
+        {
+            var failedContact = contacts.SingleOrDefault(contact => contact.Id == failedItem.ContactId);
+            if (failedContact is null)
+            {
+                continue;
+            }
+
+            failedItem.Status = CampaignQueueStatus.Pending;
+            failedItem.AttemptCount = 0;
+            failedItem.LastError = null;
+            failedItem.NextAttemptAt = DateTimeOffset.UtcNow;
+            failedItem.ProcessedAt = null;
+            failedContact.Status = ContactStatus.Pending;
+            queueRepository.Update(failedItem);
+        }
 
         var contactsToProcess = contacts.Where(contact => !existingQueueItems.ContainsKey(contact.Id)).ToArray();
         
@@ -309,7 +336,6 @@ public sealed class CampaignService : ICampaignService
                 continue;
             }
 
-            /* Temporarily disabled capability check
             if (campaign.IsRCSEnabled)
             {
                 var capability = await CheckRcsCapabilityAsync(client, contact.MobileNumber, cancellationToken);
@@ -328,7 +354,6 @@ public sealed class CampaignService : ICampaignService
                     continue;
                 }
             }
-            */
 
             await queueRepository.AddAsync(new CampaignQueueItem
             {
@@ -384,18 +409,21 @@ public sealed class CampaignService : ICampaignService
 
         if (contactsToRetry.Length == 0) return CampaignOperationResult.Failed("No contacts found to retry.");
 
+        var retryContacts = new List<Contact>();
         foreach (var originalContact in contactsToRetry)
         {
-            await contactRepository.AddAsync(new Contact
+            var retryContact = new Contact
             {
                 CampaignId = campaignId,
                 MobileNumber = originalContact.MobileNumber,
                 Status = ContactStatus.Pending
-            }, cancellationToken);
+            };
+            await contactRepository.AddAsync(retryContact, cancellationToken);
+            retryContacts.Add(retryContact);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return await QueueCampaignAsync(campaignId, cancellationToken);
+        return await QueueCampaignAsync(campaignId, cancellationToken, retryContacts.Select(contact => contact.Id).ToHashSet());
     }
 
     public async Task<CampaignOperationResult> DeleteContactsAsync(int campaignId, int[] contactIds, CancellationToken cancellationToken)
@@ -461,7 +489,7 @@ public sealed class CampaignService : ICampaignService
     private string? ValidateClientScope(int clientId)
     {
         if (string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase)) return null;
-        return _currentUser.ClientId == clientId ? null : "Client is outside scope.";
+        return _currentUser.ClientId == clientId ? null : "Client is outside the current user's scope.";
     }
 
     private bool IsAdmin() => string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);

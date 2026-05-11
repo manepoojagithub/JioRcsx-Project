@@ -16,7 +16,7 @@ dotnet publish src/JioCxRcsWrapper.Web/JioCxRcsWrapper.Web.csproj -c Release -o 
 ```powershell
 ConnectionStrings__DefaultConnection=<sql-server-connection-string>
 Jwt__SigningKey=<32+ character production secret>
-JioCx__BaseUrl=https://rcsapi-uat.jiocx.com
+JioCx__BaseUrl=https://rcsapi.jiocx.com
 Queue__Enabled=true
 ```
 

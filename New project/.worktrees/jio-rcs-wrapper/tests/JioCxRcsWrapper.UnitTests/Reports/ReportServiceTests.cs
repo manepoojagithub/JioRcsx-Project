@@ -19,7 +19,7 @@ public sealed class ReportServiceTests
         harness.AddCampaign(1, clientId: 10);
         harness.AddCampaign(2, clientId: 20);
 
-        var result = await harness.Service.GetCampaignReportsAsync(CancellationToken.None);
+        var result = await harness.Service.GetCampaignReportsAsync(cancellationToken: CancellationToken.None);
 
         result.Should().HaveCount(2);
     }
@@ -32,7 +32,7 @@ public sealed class ReportServiceTests
         harness.AddCampaign(1, clientId: 10);
         harness.AddCampaign(2, clientId: 20);
 
-        var result = await harness.Service.GetCampaignReportsAsync(CancellationToken.None);
+        var result = await harness.Service.GetCampaignReportsAsync(cancellationToken: CancellationToken.None);
 
         result.Should().ContainSingle();
         result[0].ClientId.Should().Be(10);
@@ -47,7 +47,7 @@ public sealed class ReportServiceTests
         var campaign = harness.AddCampaign(1, clientId: 10);
         harness.AddContact(campaign.Id, "+918000000000", ContactStatus.Delivered);
 
-        var result = await harness.Service.GetContactReportAsync(campaign.Id, CancellationToken.None);
+        var result = await harness.Service.GetContactReportAsync(campaign.Id, cancellationToken: CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Rows.Should().ContainSingle(row => row.Status == ContactStatus.Delivered);
@@ -69,7 +69,7 @@ public sealed class ReportServiceTests
         }
         """);
 
-        var result = await harness.Service.GetContactReportAsync(campaign.Id, CancellationToken.None);
+        var result = await harness.Service.GetContactReportAsync(campaign.Id, cancellationToken: CancellationToken.None);
 
         var row = result.Rows.Single();
         row.LastError.Should().Be("RCS_CAPABILITY");
@@ -96,7 +96,7 @@ public sealed class ReportServiceTests
         }
         """);
 
-        var result = await harness.Service.GetContactReportAsync(campaign.Id, CancellationToken.None);
+        var result = await harness.Service.GetContactReportAsync(campaign.Id, cancellationToken: CancellationToken.None);
 
         var row = result.Rows.Single();
         row.LastError.Should().BeNull();

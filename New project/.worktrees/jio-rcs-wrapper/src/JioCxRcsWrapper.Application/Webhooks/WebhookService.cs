@@ -21,28 +21,16 @@ public sealed class WebhookService : IWebhookService
     {
         var mapped = TryMap(rawJson);
         
-        if (mapped.CampaignId.HasValue)
+        var webhookEvent = new WebhookEvent
         {
-            var campaign = await _unitOfWork.Repository<Campaign>().GetByIdAsync(mapped.CampaignId.Value, cancellationToken);
-            if (campaign != null)
-            {
-                var client = await _unitOfWork.Repository<Client>().GetByIdAsync(campaign.ClientId, cancellationToken);
-                if (client != null && client.WebhookAuditEnabled)
-                {
-                    var webhookEvent = new WebhookEvent
-                    {
-                        CampaignId = mapped.CampaignId,
-                        ContactId = mapped.ContactId,
-                        MessageId = mapped.MessageId,
-                        EventType = mapped.EventType ?? mapped.Status ?? "unknown",
-                        PayloadJson = rawJson,
-                        ReceivedAt = DateTimeOffset.UtcNow
-                    };
-
-                    await _unitOfWork.Repository<WebhookEvent>().AddAsync(webhookEvent, cancellationToken);
-                }
-            }
-        }
+            CampaignId = mapped.CampaignId,
+            ContactId = mapped.ContactId,
+            MessageId = mapped.MessageId,
+            EventType = mapped.EventType ?? mapped.Status ?? "unknown",
+            PayloadJson = rawJson,
+            ReceivedAt = DateTimeOffset.UtcNow
+        };
+        await _unitOfWork.Repository<WebhookEvent>().AddAsync(webhookEvent, cancellationToken);
 
         if (mapped.CampaignId is not null && mapped.ContactId is not null)
         {
@@ -109,9 +97,9 @@ public sealed class WebhookService : IWebhookService
             return new WebhookMap(
                 campaignId,
                 contactId,
-                TryGetString(root, "messageId") ?? TryGetString(root, "messageID"),
-                TryGetString(root, "eventType") ?? TryGetString(root, "event_type"),
-                TryGetString(root, "status") ?? TryGetString(root, "messageStatus") ?? TryGetString(root, "status"),
+                FirstString(searchContainers, "messageId", "messageID"),
+                FirstString(searchContainers, "eventType", "event_type"),
+                FirstString(searchContainers, "status", "messageStatus"),
                 rawJson);
         }
         catch (JsonException)
@@ -125,6 +113,23 @@ public sealed class WebhookService : IWebhookService
         return root.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
+    }
+
+    private static string? FirstString(IEnumerable<JsonElement> containers, params string[] propertyNames)
+    {
+        foreach (var container in containers)
+        {
+            foreach (var propertyName in propertyNames)
+            {
+                var value = TryGetString(container, propertyName);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static int? TryGetInt(JsonElement root, string propertyName)

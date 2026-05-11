@@ -13,9 +13,9 @@
 ## Approved Constraints
 
 - Use only documented JioCX UAT APIs:
-  - `POST https://rcsapi-uat.jiocx.com/api/v1/uploadFile`
-  - `POST https://rcsapi-uat.jiocx.com/api/v1/sendMessage`
-  - `POST https://rcsapi-uat.jiocx.com/api/v1/checkCapability`
+  - `POST https://rcsapi.jiocx.com/api/v1/uploadFile`
+  - `POST https://rcsapi.jiocx.com/api/v1/sendMessage`
+  - `POST https://rcsapi.jiocx.com/api/v1/checkCapability`
 - Do not implement undocumented onboarding or tester-management API calls.
 - Do not invent payload schemas for dialer, calendar, location CTA actions, or webhook bodies.
 - Store raw webhook JSON and parse defensively.
@@ -784,7 +784,7 @@ public sealed class JwtOptions
 
 public sealed class JioCxOptions
 {
-    public string BaseUrl { get; set; } = "https://rcsapi-uat.jiocx.com";
+    public string BaseUrl { get; set; } = "https://rcsapi.jiocx.com";
     public string UploadFilePath { get; set; } = "/api/v1/uploadFile";
     public string SendMessagePath { get; set; } = "/api/v1/sendMessage";
     public string CheckCapabilityPath { get; set; } = "/api/v1/checkCapability";
@@ -862,7 +862,7 @@ Update `src/JioCxRcsWrapper.Web/appsettings.json`:
     "ExpiryMinutes": 60
   },
   "JioCx": {
-    "BaseUrl": "https://rcsapi-uat.jiocx.com",
+    "BaseUrl": "https://rcsapi.jiocx.com",
     "UploadFilePath": "/api/v1/uploadFile",
     "SendMessagePath": "/api/v1/sendMessage",
     "CheckCapabilityPath": "/api/v1/checkCapability"

@@ -24,6 +24,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             "Card Title goes here",
             "Card Description goes here",
+            null,
             "https://cdn.example.com/image.png",
             null,
             [new CtaDraft("Button 1", CtaActionType.OpenUrl, "https://example.com", "call_back_data_for_button_1_goes_here")]));
@@ -49,6 +50,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             "Title",
             "Description",
+            null,
             "https://cdn.example.com/image.png",
             null,
             Enumerable.Range(1, 5)
@@ -65,6 +67,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             "Title",
             "Description",
+            null,
             "https://cdn.example.com/image.png",
             null,
             [new CtaDraft("Button", CtaActionType.OpenUrl, "http://example.com", "pb")]));
@@ -79,6 +82,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             "Title",
             "Description",
+            null,
             "https://cdn.example.com/image.png",
             null,
             [new CtaDraft("Call", CtaActionType.Dialer, "+918000000000", "pb")]));
@@ -99,6 +103,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             "Title",
             "Description",
+            null,
             "https://cdn.example.com/image.png",
             null,
             [new CtaDraft("Calendar", CtaActionType.Calendar, calendarJson, "pb")]));
@@ -118,6 +123,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             "Title",
             "Description",
+            null,
             "https://cdn.example.com/image.png",
             null,
             [new CtaDraft("Location", CtaActionType.Location, locationJson, "pb")]));
@@ -152,11 +158,13 @@ public sealed class MessagePayloadValidatorTests
                 new CarouselCardDraft(
                     "Card 1",
                     "Description 1",
+                    null,
                     "https://cdn.example.com/1.png",
                     [new CtaDraft("Pay Now", CtaActionType.OpenUrl, "https://example.com/pay", "pb-1")]),
                 new CarouselCardDraft(
                     "Card 2",
                     "Description 2",
+                    null,
                     "https://cdn.example.com/2.png",
                     [])
             ]));
@@ -174,6 +182,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             new string('T', 81),
             "Description",
+            null,
             "https://cdn.example.com/image.png",
             null,
             []));
@@ -188,6 +197,7 @@ public sealed class MessagePayloadValidatorTests
         var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
             "Title",
             new string('D', 2001),
+            null,
             "https://cdn.example.com/image.png",
             null,
             []));
