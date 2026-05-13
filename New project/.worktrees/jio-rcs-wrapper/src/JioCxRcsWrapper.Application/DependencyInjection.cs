@@ -29,7 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddSingleton<IContactCsvParser, ContactCsvParser>();
         services.AddSingleton<IMediaValidator, MediaValidator>();
-        services.AddSingleton<IMessagePayloadService, MessagePayloadService>();
+        services.AddScoped<IMessagePayloadService, MessagePayloadBuilder>();
         services.AddSingleton<IQueueRetryPolicy, QueueRetryPolicy>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IUserManagementService, UserManagementService>();

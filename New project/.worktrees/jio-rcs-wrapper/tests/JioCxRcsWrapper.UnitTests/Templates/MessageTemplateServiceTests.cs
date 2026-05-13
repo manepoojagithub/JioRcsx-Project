@@ -32,7 +32,7 @@ public sealed class MessageTemplateServiceTests
         await harness.Service.UpdateAsync(new UpdateMessageTemplateRequest(
             1,
             "New",
-            MessageType.RichCard,
+            MessageType.StandaloneCard,
             """{"content":{"richCardDetails":{}}}""",
             20,
             "/local.png",
@@ -42,7 +42,7 @@ public sealed class MessageTemplateServiceTests
         var template = harness.Templates.Single();
         template.Name.Should().Be("New");
         template.ClientId.Should().Be(20);
-        template.MessageType.Should().Be(MessageType.RichCard);
+        template.MessageType.Should().Be(MessageType.StandaloneCard);
         template.RcsMediaUrl.Should().Be("https://cdn.example.com/local.png");
     }
 

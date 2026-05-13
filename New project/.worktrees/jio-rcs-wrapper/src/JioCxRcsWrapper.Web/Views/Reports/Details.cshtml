@@ -61,7 +61,7 @@
                 {
                     <th>Last Error</th>
                     <th>Exact Error</th>
-                    <th>API Request / Response</th>
+                    <th>API Details</th>
                 }
                 <th>Last Updated</th>
             </tr>
@@ -79,21 +79,29 @@
                         <td>@(row.LastError ?? "-")</td>
                         <td class="text-break">@(row.ErrorMessage ?? "-")</td>
                         <td>
-                            @if (!string.IsNullOrWhiteSpace(row.RequestHeaders) ||
-                                 !string.IsNullOrWhiteSpace(row.RequestPayload) ||
-                                 !string.IsNullOrWhiteSpace(row.ResponseBody))
+                            @if (!string.IsNullOrWhiteSpace(row.RequestPayload) || !string.IsNullOrWhiteSpace(row.ResponseBody))
                             {
-                                <details class="report-api-details">
-                                    <summary>View</summary>
-                                    <div class="report-api-block">
-                                        <strong>Headers</strong>
-                                        <pre>@(row.RequestHeaders ?? "-")</pre>
-                                        <strong>Payload</strong>
-                                        <pre>@(row.RequestPayload ?? "-")</pre>
-                                        <strong>Response (@(row.ResponseStatusCode ?? "-"))</strong>
-                                        <pre>@(row.ResponseBody ?? "-")</pre>
+                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#reportModal-@row.MobileNumber.Replace("+", "")">
+                                    View cURL
+                                </button>
+
+                                <div class="modal fade" id="reportModal-@row.MobileNumber.Replace("+", "")" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content text-dark">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">API Details - @row.MobileNumber</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <h6>cURL Request</h6>
+                                                <pre style="white-space: pre-wrap; word-break: break-all;" class="bg-light p-2 border">@(row.RequestPayload ?? "-")</pre>
+                                                
+                                                <h6 class="mt-3">JSON Response</h6>
+                                                <pre style="white-space: pre-wrap; word-break: break-all;" class="bg-light p-2 border">@(row.ResponseBody ?? "-")</pre>
+                                            </div>
+                                        </div>
                                     </div>
-                                </details>
+                                </div>
                             }
                             else
                             {

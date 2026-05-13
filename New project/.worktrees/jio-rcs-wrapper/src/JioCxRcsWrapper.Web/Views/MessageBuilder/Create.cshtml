@@ -1,135 +1,120 @@
 @model JioCxRcsWrapper.Web.Models.MessageBuilder.MessageBuilderViewModel
+
 @{
-    ViewData["Title"] = "Message Builder";
+    ViewData["Title"] = "Create Template";
 }
 
-<section class="page-hero builder-hero">
-    <div>
-        <div class="page-eyebrow">Visual Editor</div>
-        <h1>Create Message Template</h1>
-        <p>Design plain text or rich card payloads with media, CTA buttons, and live RCSX preview.</p>
-    </div>
-</section>
-
-<form id="message-builder-form" asp-action="Preview" method="post" enctype="multipart/form-data" class="builder-shell" data-save-url="@Url.Action("SaveTemplate")">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
-    <input type="hidden" asp-for="MessageType" />
-
-    <section class="builder-editor panel-card">
-        <div class="builder-toolbar">
-            <div class="btn-group" role="group" aria-label="Message type">
-                <button type="button" class="btn btn-primary" data-message-type="PlainText">Plain Text</button>
-                <button type="button" class="btn btn-outline-primary" data-message-type="RichCard">Rich Card</button>
-            </div>
-            <span class="section-count">Payload Editor</span>
-        </div>
-
-        <div class="builder-form-grid">
-            <div>
-                <label asp-for="TemplateName" class="form-label">Template Name</label>
-                <input asp-for="TemplateName" class="form-control" placeholder="Promotional rich card" />
-            </div>
-            <div>
-                <label asp-for="ClientId" class="form-label">Client For JioCX Upload</label>
-                <select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select">
-                    <option value="">Use current client</option>
-                </select>
-            </div>
-        </div>
-
-        <div data-panel="PlainText" class="builder-panel">
-            <label class="form-label">Plain Text</label>
-            <div class="rich-toolbar" role="group">
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="bold"><strong>B</strong></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="italic"><em>I</em></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="underline"><u>U</u></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="insertUnorderedList">List</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyLeft">Left</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyCenter">Center</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyRight">Right</button>
-            </div>
-            <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Text"></div>
-            <textarea asp-for="Text" class="d-none"></textarea>
-        </div>
-
-        <div data-panel="RichCard" class="builder-panel d-none">
-            <div class="builder-form-grid">
-                <div>
-                    <label asp-for="Title" class="form-label"></label>
-                    <div class="rich-toolbar" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rich-command="bold"><strong>B</strong></button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rich-command="italic"><em>I</em></button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-rich-command="underline"><u>U</u></button>
+<div class="builder-container">
+    <div class="builder-sidebar">
+        <form asp-action="Create" method="post" enctype="multipart/form-data" id="templateForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="MessageType" id="selectedMessageType" />
+            
+            <div class="panel-card mb-4">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Basic Info</h2>
+                        <p>Name and target agent for this template.</p>
                     </div>
-                    <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Title" style="height: 60px;"></div>
-                    <textarea asp-for="Title" class="d-none"></textarea>
-                    <div class="form-text"><span data-count-for="Title">0</span>/80</div>
                 </div>
-                <div>
-                    <label asp-for="MediaFile" class="form-label">Upload Image / Video</label>
-                    <input asp-for="MediaFile" class="form-control" type="file" accept="image/*,video/*" />
+                <div class="p-4">
+                    <div class="mb-3">
+                        <label asp-for="TemplateName" class="form-label">Template Name</label>
+                        <input asp-for="TemplateName" class="form-control" placeholder="e.g. Welcome Promo" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ClientId" class="form-label">Assign to Client (Optional)</label>
+                        <select asp-for="ClientId" asp-items="ViewBag.ClientList" class="form-select">
+                            <option value="">Global Template</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <label asp-for="Description" class="form-label"></label>
-            <div class="rich-toolbar" role="group">
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="bold"><strong>B</strong></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="italic"><em>I</em></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="underline"><u>U</u></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="insertUnorderedList">List</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyLeft">Left</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyCenter">Center</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyRight">Right</button>
-            </div>
-            <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Description"></div>
-            <textarea asp-for="Description" class="d-none"></textarea>
-            <div class="form-text"><span data-count-for="Description">0</span>/2000</div>
 
-            <label asp-for="Footer" class="form-label"></label>
-            <div class="rich-toolbar" role="group">
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="bold"><strong>B</strong></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="italic"><em>I</em></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="underline"><u>U</u></button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyLeft">Left</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyCenter">Center</button>
-                <button type="button" class="btn btn-outline-secondary" data-rich-command="justifyRight">Right</button>
+            <div class="builder-tabs mb-4">
+                <button type="button" class="tab-btn active" data-type="PlainText">
+                    <i class="bi bi-chat-left-text"></i>
+                    <span>Plain Text</span>
+                </button>
+                <button type="button" class="tab-btn" data-type="StandaloneCard">
+                    <i class="bi bi-card-image"></i>
+                    <span>Standalone Card</span>
+                </button>
+                <button type="button" class="tab-btn" data-type="Carousel">
+                    <i class="bi bi-collection"></i>
+                    <span>Carousel</span>
+                </button>
             </div>
-            <div class="form-control rich-editor builder-rich-editor" contenteditable="true" data-hidden-target="Footer" style="height: 80px;"></div>
-            <textarea asp-for="Footer" class="d-none"></textarea>
 
-            <input asp-for="MediaUrl" type="hidden" />
-            <input asp-for="ThumbnailUrl" type="hidden" />
-            <input asp-for="LocalMediaPath" type="hidden" />
-            <input asp-for="MediaContentType" type="hidden" />
-            <div class="builder-cta-header">
-                <h2>CTA Buttons</h2>
-                <button type="button" id="add-cta" class="btn btn-sm btn-outline-primary">Add CTA</button>
+            <div id="panelsContainer">
+                <!-- Panels are dynamically rendered/shown via JS -->
+                
+                <div data-panel="PlainText" class="panel-content">
+                    <div class="panel-card">
+                        <div class="p-4">
+                            <label class="form-label">Message Content</label>
+                            <textarea asp-for="Text" class="form-control" rows="6" placeholder="Enter your message here... Use {{variable}} for custom data."></textarea>
+                            <div class="form-text mt-2">Variables like {{firstName}} will be replaced during campaign processing.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div data-panel="StandaloneCard" class="panel-content d-none">
+                    <!-- Standard card fields -->
+                    <div class="card-editor" data-index="0">
+                        @await Html.PartialAsync("_CardEditor", Model.Cards[0])
+                    </div>
+                </div>
+
+                <div data-panel="Carousel" class="panel-content d-none">
+                    <div id="carouselCardsContainer">
+                        <!-- Multiple cards here -->
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" id="addCarouselCard">
+                        <i class="bi bi-plus-lg"></i> Add Card
+                    </button>
+                    <div class="form-text mt-2 text-center">Carousel must have 2-10 cards.</div>
+                </div>
             </div>
-            <div id="cta-list" class="builder-cta-list"></div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">Create Template</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="builder-preview">
+        <div class="preview-sticky">
+            <div class="preview-header">
+                <i class="bi bi-phone"></i> Live Preview
+            </div>
+            <div class="phone-container">
+                <div class="phone-screen">
+                    <div id="livePreviewContent">
+                        <!-- Live preview rendered via JS -->
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+</div>
 
-        <div class="form-actions">
-            <button type="button" id="preview-payload-btn" class="btn btn-primary panel-primary-btn">Preview Payload</button>
-            <button type="button" id="save-template" class="btn btn-success">Save Template</button>
-            <button type="button" id="clear-builder" class="btn btn-light panel-soft-btn">Clear</button>
-        </div>
-    </section>
-
-    <aside class="builder-preview panel-card">
-        <div class="phone-preview">
-            <div class="phone-top">RCSX Preview</div>
-            <div id="message-builder-errors" class="alert alert-danger d-none"></div>
-            <div class="phone-message" id="rcsx-visual-preview">
-                <div id="preview-title" class="fw-semibold"></div>
-                <div id="preview-description" class="text-muted mb-2"></div>
-                <div id="preview-media"></div>
-                <div id="preview-footer" class="text-muted small mt-2"></div>
-                <div id="preview-plain" class="mt-2"></div>
-            </div>
-        </div>
-        <pre id="payload-preview" class="payload-preview"></pre>
-    </aside>
-</form>
+<style>
+    .builder-container { display: flex; gap: 2rem; align-items: flex-start; }
+    .builder-sidebar { flex: 1; max-width: 500px; }
+    .builder-preview { flex: 1; min-width: 350px; }
+    .builder-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; background: #f1f3f5; padding: 0.5rem; border-radius: 12px; }
+    .tab-btn { border: none; background: transparent; padding: 1rem; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s; color: #495057; }
+    .tab-btn i { font-size: 1.5rem; }
+    .tab-btn span { font-size: 0.75rem; font-weight: 600; }
+    .tab-btn.active { background: white; color: #007bff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .preview-sticky { position: sticky; top: 2rem; }
+    .phone-container { width: 320px; height: 600px; background: #000; border-radius: 36px; padding: 12px; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+    .phone-screen { width: 100%; height: 100%; background: #f8f9fa; border-radius: 24px; overflow-y: auto; overflow-x: hidden; padding: 1rem; }
+    .card-editor { border: 1px solid #dee2e6; border-radius: 12px; padding: 1.5rem; background: white; margin-bottom: 1.5rem; position: relative; }
+    .card-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #f1f3f5; padding-bottom: 0.5rem; }
+    .preview-header { font-weight: 600; color: #adb5bd; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; justify-content: center; }
+</style>
 
 @section Scripts {
     <script src="~/js/message-builder.js" asp-append-version="true"></script>

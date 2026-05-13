@@ -20,35 +20,54 @@ public sealed partial class ContactCsvParser : IContactCsvParser
             return ParsedContactsResult.Failed(["Contact required"]);
         }
 
-        if (string.Equals(rows[0].Trim().Trim('"'), "MobileNumber", StringComparison.OrdinalIgnoreCase))
+        // Determine headers
+        var headers = rows[0].Split(',').Select(h => h.Trim().Trim('"')).ToArray();
+        var hasHeaderRow = string.Equals(headers[0], "MobileNumber", StringComparison.OrdinalIgnoreCase);
+        
+        if (hasHeaderRow)
         {
             rows.RemoveAt(0);
         }
+        else
+        {
+            // Default headers if none provided
+            headers = new string[headers.Length];
+            headers[0] = "MobileNumber";
+            for (int i = 1; i < headers.Length; i++) headers[i] = $"var{i}";
+        }
 
         var errors = new List<string>();
-        var mobileNumbers = new List<string>();
+        var parsedContacts = new List<ParsedContactData>();
 
         foreach (var row in rows)
         {
-            var value = row.Split(',')[0].Trim().Trim('"');
-            if (string.IsNullOrWhiteSpace(value))
+            var columns = row.Split(',').Select(c => c.Trim().Trim('"')).ToArray();
+            var mobile = columns[0];
+
+            if (string.IsNullOrWhiteSpace(mobile))
             {
                 errors.Add("Contact required");
                 continue;
             }
 
-            var normalized = value.StartsWith('+') ? value : $"+{value}";
+            var normalized = mobile.StartsWith('+') ? mobile : $"+{mobile}";
             if (!MobileRegex().IsMatch(normalized))
             {
-                errors.Add($"Invalid mobile number: {value}");
+                errors.Add($"Invalid mobile number: {mobile}");
                 continue;
             }
 
-            mobileNumbers.Add(normalized);
+            var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 1; i < Math.Min(columns.Length, headers.Length); i++)
+            {
+                variables[headers[i]] = columns[i];
+            }
+
+            parsedContacts.Add(new ParsedContactData(normalized, variables));
         }
 
         return errors.Count == 0
-            ? ParsedContactsResult.Success(mobileNumbers.Distinct(StringComparer.OrdinalIgnoreCase).ToArray())
+            ? ParsedContactsResult.Success(parsedContacts)
             : ParsedContactsResult.Failed(errors);
     }
 

@@ -21,7 +21,8 @@ public enum CampaignStatus
 public enum MessageType
 {
     PlainText = 1,
-    RichCard = 2
+    StandaloneCard = 2,
+    Carousel = 3
 }
 
 public enum ContactStatus

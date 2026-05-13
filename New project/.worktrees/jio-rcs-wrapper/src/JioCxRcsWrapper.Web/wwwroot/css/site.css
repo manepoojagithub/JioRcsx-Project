@@ -1,3 +1,99 @@
+/* Message Builder Preview */
+.preview-bubble {
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    max-width: 90%;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    word-break: break-word;
+    border: 1px solid #e9ecef;
+}
+
+.preview-card {
+    background: white;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-media {
+    height: 140px;
+    background: #f1f3f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.preview-media::after {
+    content: '\F22C';
+    font-family: "bootstrap-icons" !important;
+    font-size: 2rem;
+    color: #dee2e6;
+}
+
+.preview-body {
+    padding: 1rem;
+    flex-grow: 1;
+}
+
+.preview-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.preview-desc {
+    font-size: 0.85rem;
+    color: #6c757d;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.preview-btns {
+    border-top: 1px solid #f1f3f5;
+}
+
+.preview-btn {
+    padding: 0.75rem;
+    text-align: center;
+    color: #007bff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #f1f3f5;
+    cursor: default;
+}
+
+.preview-btn:last-child {
+    border-bottom: none;
+}
+
+.preview-carousel {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    scroll-snap-type: x mandatory;
+}
+
+.preview-carousel-item {
+    flex: 0 0 240px;
+    scroll-snap-align: start;
+}
+
+.x-small { font-size: 0.7rem; }
+
 html {
   font-size: 14px;
 }

@@ -1,0 +1,78 @@
+@model JioCxRcsWrapper.Web.Models.ApiSettings.ApiSettingsViewModel
+@{
+    ViewData["Title"] = "API Configuration";
+}
+
+<section class="page-hero panel-hero">
+    <div>
+        <div class="page-eyebrow">System Settings</div>
+        <h1>API Configuration</h1>
+        <p>Manage JioCX API endpoints and base connectivity settings.</p>
+    </div>
+</section>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form asp-action="Index" method="post">
+    @Html.AntiForgeryToken()
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <section class="panel-card mb-4">
+                <div class="panel-card-header">
+                    <div>
+                        <h2>Connectivity</h2>
+                        <p>Core API endpoint configuration.</p>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="mb-4">
+                        <label asp-for="BaseUrl" class="form-label fw-bold">Base URL</label>
+                        <input asp-for="BaseUrl" class="form-control" placeholder="https://rcsapi.jiocx.com" />
+                        <div class="form-text">The root URL for all JioCX API calls.</div>
+                        <span asp-validation-for="BaseUrl" class="text-danger"></span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="SendMessagePath" class="form-label fw-bold">Send Message Path</label>
+                            <input asp-for="SendMessagePath" class="form-control" />
+                            <span asp-validation-for="SendMessagePath" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="UploadFilePath" class="form-label fw-bold">Upload Media Path</label>
+                            <input asp-for="UploadFilePath" class="form-control" />
+                            <span asp-validation-for="UploadFilePath" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="CheckCapabilityPath" class="form-label fw-bold">Check Capability Path</label>
+                            <input asp-for="CheckCapabilityPath" class="form-control" />
+                            <span asp-validation-for="CheckCapabilityPath" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary panel-primary-btn px-5">Save Configuration</button>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="alert alert-warning border-warning bg-light shadow-sm">
+                <h4 class="h6 fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i> Warning</h4>
+                <p class="small mb-0">Changes to these settings take effect immediately for all active campaigns and background workers. Ensure the URLs are valid before saving.</p>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

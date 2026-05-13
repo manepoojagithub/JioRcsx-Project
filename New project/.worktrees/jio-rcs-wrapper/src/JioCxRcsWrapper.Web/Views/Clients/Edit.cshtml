@@ -39,6 +39,14 @@
                 <div class="form-text">Masked value keeps the existing Agent ID. Replace it only when changing credentials.</div>
             </div>
             <div><label asp-for="SiteName" class="form-label"></label><input asp-for="SiteName" class="form-control" /></div>
+            <div>
+                <label asp-for="AgentUseCase" class="form-label">Agent Use Case</label>
+                <select asp-for="AgentUseCase" class="form-select">
+                    <option value="Transactional">Transactional</option>
+                    <option value="Promotional">Promotional</option>
+                    <option value="OTP">OTP</option>
+                </select>
+            </div>
             <div><label asp-for="ManagerEmail" class="form-label">Manager Email</label><input asp-for="ManagerEmail" class="form-control" /></div>
             <div>
                 <label class="form-label">Manager Password</label>

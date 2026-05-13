@@ -80,5 +80,12 @@ public static class SeedData
         rolePermissions.Add(new RolePermission { Id = id++, RoleId = 2, PermissionId = 7, Module = "Campaigns" });
 
         modelBuilder.Entity<RolePermission>().HasData(rolePermissions);
+
+        modelBuilder.Entity<ApiSetting>().HasData(
+            new ApiSetting { Id = 1, Key = "JioCx_BaseUrl", Value = "https://rcsapi.jiocx.com", Description = "Base URL for JioCX API" },
+            new ApiSetting { Id = 2, Key = "JioCx_UploadFilePath", Value = "/api/v1/uploadFile", Description = "Path for uploading media" },
+            new ApiSetting { Id = 3, Key = "JioCx_SendMessagePath", Value = "/api/v1/sendMessage", Description = "Path for sending messages" },
+            new ApiSetting { Id = 4, Key = "JioCx_CheckCapabilityPath", Value = "/api/v1/checkCapability", Description = "Path for checking RCS capability" }
+        );
     }
 }

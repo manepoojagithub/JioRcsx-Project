@@ -1,0 +1,27 @@
+@model JioCxRcsWrapper.Web.Models.MessageBuilder.CtaViewModel
+@{
+    var cardIndex = ViewData["cardIndex"] ?? 0;
+    var ctaIndex = ViewData["ctaIndex"] ?? 0;
+    var prefix = $"Cards[{cardIndex}].Ctas[{ctaIndex}]";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-1">
+    <span class="x-small fw-bold">Button @((int)ctaIndex + 1)</span>
+    <button type="button" class="btn btn-link btn-sm text-danger p-0 remove-cta">Delete</button>
+</div>
+<div class="row g-2">
+    <div class="col-6">
+        <input type="text" name="@(prefix).Text" class="form-control form-control-sm cta-text" placeholder="Button Text" value="@Model.Text" required />
+    </div>
+    <div class="col-6">
+        <select name="@(prefix).ActionType" class="form-select form-select-sm cta-type">
+            @foreach (var type in Enum.GetValues<JioCxRcsWrapper.Domain.Enums.CtaActionType>())
+            {
+                <option value="@type" selected="@(Model.ActionType == type)">@type</option>
+            }
+        </select>
+    </div>
+    <div class="col-12">
+        <input type="text" name="@(prefix).Value" class="form-control form-control-sm cta-value" placeholder="URL or Phone Number" value="@Model.Value" required />
+    </div>
+</div>

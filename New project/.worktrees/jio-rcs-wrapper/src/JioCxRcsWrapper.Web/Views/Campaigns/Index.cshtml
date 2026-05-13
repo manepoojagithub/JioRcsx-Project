@@ -126,7 +126,7 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="CampaignId" value="@campaign.Id" />
                                 <input class="form-control form-control-sm campaign-file-input" type="file" name="CsvFile" accept=".csv,text/csv" />
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Upload</button>
+                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Variable Support: First row can be headers (e.g. MobileNumber,FirstName). Use {{FirstName}} in templates.">Upload</button>
                             </form>
                         }
                         @if (canUpdate && !campaign.IsDisabled)

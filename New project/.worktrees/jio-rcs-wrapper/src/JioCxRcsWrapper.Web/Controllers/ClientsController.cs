@@ -66,6 +66,7 @@ public sealed class ClientsController : Controller
                 model.ManagerEmail,
                 model.ManagerPassword,
                 logoPath,
+                model.AgentUseCase,
                 model.Credits,
                 model.CreditCostPerMessage,
                 model.LowCreditThreshold), adminUserId, cancellationToken);

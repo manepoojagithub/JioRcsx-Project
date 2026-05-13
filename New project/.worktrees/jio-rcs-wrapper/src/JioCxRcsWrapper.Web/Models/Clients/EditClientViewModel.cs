@@ -35,5 +35,7 @@ public sealed class EditClientViewModel
 
     public string? ManagerPassword { get; set; }
 
+    public string AgentUseCase { get; set; } = "Transactional";
+
     public bool WebhookAuditEnabled { get; set; }
 }

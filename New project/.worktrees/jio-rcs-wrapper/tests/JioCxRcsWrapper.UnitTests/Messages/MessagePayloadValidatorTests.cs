@@ -19,9 +19,9 @@ public sealed class MessagePayloadValidatorTests
     }
 
     [Fact]
-    public void RichCard_WithOpenUrl_IsValidAndBuildsDocumentedPayload()
+    public void StandaloneCard_WithOpenUrl_IsValidAndBuildsDocumentedPayload()
     {
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             "Card Title goes here",
             "Card Description goes here",
             null,
@@ -45,9 +45,9 @@ public sealed class MessagePayloadValidatorTests
     }
 
     [Fact]
-    public void RichCard_WithFiveCtas_IsRejected()
+    public void StandaloneCard_WithFiveCtas_IsRejected()
     {
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             "Title",
             "Description",
             null,
@@ -62,9 +62,9 @@ public sealed class MessagePayloadValidatorTests
     }
 
     [Fact]
-    public void RichCard_WithHttpUrl_IsRejected()
+    public void StandaloneCard_WithHttpUrl_IsRejected()
     {
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             "Title",
             "Description",
             null,
@@ -77,9 +77,9 @@ public sealed class MessagePayloadValidatorTests
     }
 
     [Fact]
-    public void RichCard_WithDialerAction_BuildsDocumentedPayload()
+    public void StandaloneCard_WithDialerAction_BuildsDocumentedPayload()
     {
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             "Title",
             "Description",
             null,
@@ -89,18 +89,18 @@ public sealed class MessagePayloadValidatorTests
 
         result.IsValid.Should().BeTrue();
         using var document = JsonDocument.Parse(result.PayloadJson!);
-        var action = FirstRichCardSuggestion(document).GetProperty("action");
+        var action = FirstStandaloneCardSuggestion(document).GetProperty("action");
         action.GetProperty("dialerAction").GetProperty("phoneNumber").GetString().Should().Be("+918000000000");
     }
 
     [Fact]
-    public void RichCard_WithCalendarAction_BuildsDocumentedPayload()
+    public void StandaloneCard_WithCalendarAction_BuildsDocumentedPayload()
     {
         var calendarJson = """
             {"startTime":"2023-06-26T15:01:23Z","endTime":"2023-06-26T18:01:23Z","title":"RCS Seminar","description":"Session 1 of 4"}
             """;
 
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             "Title",
             "Description",
             null,
@@ -110,17 +110,17 @@ public sealed class MessagePayloadValidatorTests
 
         result.IsValid.Should().BeTrue();
         using var document = JsonDocument.Parse(result.PayloadJson!);
-        var calendar = FirstRichCardSuggestion(document).GetProperty("action").GetProperty("createCalendarEvent");
+        var calendar = FirstStandaloneCardSuggestion(document).GetProperty("action").GetProperty("createCalendarEvent");
         calendar.GetProperty("startTime").GetString().Should().Be("2023-06-26T15:01:23Z");
         calendar.GetProperty("title").GetString().Should().Be("RCS Seminar");
     }
 
     [Fact]
-    public void RichCard_WithLocationAction_BuildsDocumentedPayload()
+    public void StandaloneCard_WithLocationAction_BuildsDocumentedPayload()
     {
         var locationJson = """{"latitude":21.5937,"longitude":78.9629,"label":"Label - Show Location"}""";
 
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             "Title",
             "Description",
             null,
@@ -130,7 +130,7 @@ public sealed class MessagePayloadValidatorTests
 
         result.IsValid.Should().BeTrue();
         using var document = JsonDocument.Parse(result.PayloadJson!);
-        var location = FirstRichCardSuggestion(document).GetProperty("action").GetProperty("showLocation");
+        var location = FirstStandaloneCardSuggestion(document).GetProperty("action").GetProperty("showLocation");
         location.GetProperty("coordinAtes").GetProperty("latitude").GetDecimal().Should().Be(21.5937m);
         location.GetProperty("label").GetString().Should().Be("Label - Show Location");
     }
@@ -177,9 +177,9 @@ public sealed class MessagePayloadValidatorTests
     }
 
     [Fact]
-    public void RichCard_TitleOver80_IsRejected()
+    public void StandaloneCard_TitleOver80_IsRejected()
     {
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             new string('T', 81),
             "Description",
             null,
@@ -192,9 +192,9 @@ public sealed class MessagePayloadValidatorTests
     }
 
     [Fact]
-    public void RichCard_DescriptionOver2000_IsRejected()
+    public void StandaloneCard_DescriptionOver2000_IsRejected()
     {
-        var result = MessagePayloadBuilder.BuildRichCard(new RichCardDraft(
+        var result = MessagePayloadBuilder.BuildStandaloneCard(new StandaloneCardDraft(
             "Title",
             new string('D', 2001),
             null,
@@ -206,7 +206,7 @@ public sealed class MessagePayloadValidatorTests
         result.Errors.Should().Contain("Description must be 2000 characters or fewer.");
     }
 
-    private static JsonElement FirstRichCardSuggestion(JsonDocument document)
+    private static JsonElement FirstStandaloneCardSuggestion(JsonDocument document)
     {
         return document.RootElement
             .GetProperty("content")

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JioCxRcsWrapper.Application.Common.Interfaces;
 using JioCxRcsWrapper.Application.Common.Options;
 using JioCxRcsWrapper.Application.JioCx;
 using JioCxRcsWrapper.Application.Security;
@@ -20,29 +21,45 @@ public sealed class JioCxClient : IJioCxClient
     private readonly HttpClient _httpClient;
     private readonly IAuditService _auditService;
     private readonly ICurrentUser _currentUser;
+    private readonly IApiSettingService _apiSettings;
     private readonly JioCxOptions _options;
 
-    public JioCxClient(HttpClient httpClient, IOptions<JioCxOptions> options, IAuditService auditService, ICurrentUser currentUser)
+    public JioCxClient(
+        HttpClient httpClient, 
+        IOptions<JioCxOptions> options, 
+        IAuditService auditService, 
+        ICurrentUser currentUser,
+        IApiSettingService apiSettings)
     {
         _httpClient = httpClient;
         _auditService = auditService;
         _currentUser = currentUser;
+        _apiSettings = apiSettings;
         _options = options.Value;
-        
-        var baseUrl = _options.BaseUrl.TrimEnd('/');
-        _httpClient.BaseAddress ??= new Uri(baseUrl + "/");
     }
 
-    private string BuildUrl(string path) => $"{_httpClient.BaseAddress?.ToString().TrimEnd('/')}/{path.TrimStart('/')}";
+    private async Task<string> GetBaseUrlAsync() => await _apiSettings.GetValueAsync("JioCx_BaseUrl", _options.BaseUrl);
+    private async Task<string> GetUploadPathAsync() => await _apiSettings.GetValueAsync("JioCx_UploadFilePath", _options.UploadFilePath);
+    private async Task<string> GetSendMessagePathAsync() => await _apiSettings.GetValueAsync("JioCx_SendMessagePath", _options.SendMessagePath);
+    private async Task<string> GetCheckCapabilityPathAsync() => await _apiSettings.GetValueAsync("JioCx_CheckCapabilityPath", _options.CheckCapabilityPath);
+
+    private async Task<string> BuildUrlAsync(string path)
+    {
+        var baseUrl = await GetBaseUrlAsync();
+        return baseUrl.TrimEnd('/') + "/" + path.TrimStart('/');
+    }
 
     public async Task<JioCxUploadResult> UploadFileAsync(string apiKey, string agentId, Stream file, string fileName, string contentType, CancellationToken cancellationToken)
     {
         try
         {
+            var baseUrl = await GetBaseUrlAsync();
+            _httpClient.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+
             using var bufferedFile = new MemoryStream();
             await file.CopyToAsync(bufferedFile, cancellationToken);
 
-            var path = _options.UploadFilePath;
+            var path = await GetUploadPathAsync();
             using var request = new HttpRequestMessage(HttpMethod.Post, path.TrimStart('/'));
             request.Headers.Add("x-apikey", apiKey);
             using var content = new MultipartFormDataContent();
@@ -52,7 +69,7 @@ public sealed class JioCxClient : IJioCxClient
             content.Add(new StringContent(agentId), "agentId");
             request.Content = content;
 
-            var curl = $"curl -X POST \"{BuildUrl(path)}\" -H \"x-apikey: {apiKey}\" -F \"file=@{fileName}\" -F \"agentId={agentId}\"";
+            var curl = $"curl -X POST \"{await BuildUrlAsync(path)}\" -H \"x-apikey: {apiKey}\" -F \"file=@{fileName}\" -F \"agentId={agentId}\"";
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -80,7 +97,10 @@ public sealed class JioCxClient : IJioCxClient
     {
         try
         {
-            var path = _options.SendMessagePath;
+            var baseUrl = await GetBaseUrlAsync();
+            _httpClient.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+
+            var path = await GetSendMessagePathAsync();
             using var request = new HttpRequestMessage(HttpMethod.Post, path.TrimStart('/'));
             request.Headers.Add("x-apikey", apiKey);
             var payload = new
@@ -95,15 +115,31 @@ public sealed class JioCxClient : IJioCxClient
             var payloadJson = JsonSerializer.Serialize(payload, JsonOptions);
             request.Content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
 
-            var curl = $"curl -X POST \"{BuildUrl(path)}\" -H \"x-apikey: {apiKey}\" -H \"Content-Type: application/json\" -d '{payloadJson}'";
+            var curl = $"curl -X POST \"{await BuildUrlAsync(path)}\" -H \"x-apikey: {apiKey}\" -H \"Content-Type: application/json\" -d '{payloadJson}'";
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
 
+            var isSucceeded = response.IsSuccessStatusCode;
+            if (isSucceeded)
+            {
+                // Deep check of JSON body if possible
+                try
+                {
+                    using var doc = JsonDocument.Parse(responseJson);
+                    if (doc.RootElement.TryGetProperty("status", out var statusProp))
+                    {
+                        var status = statusProp.ValueKind == JsonValueKind.Number ? statusProp.GetInt32() : 0;
+                        if (status != 0 && status != 200 && status != 201) isSucceeded = false;
+                    }
+                }
+                catch { /* Ignore parsing errors for success check fallback */ }
+            }
+
             var userId = _currentUser.IsAuthenticated ? _currentUser.UserId : 0;
             await _auditService.LogAsync(userId, "SendMessage", "JioCX", curl, responseJson, cancellationToken);
 
-            return new JioCxSendResult(response.IsSuccessStatusCode, (int)response.StatusCode, responseJson, curl);
+            return new JioCxSendResult(isSucceeded, (int)response.StatusCode, responseJson, curl);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -122,7 +158,11 @@ public sealed class JioCxClient : IJioCxClient
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, _options.CheckCapabilityPath);
+            var baseUrl = await GetBaseUrlAsync();
+            _httpClient.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+
+            var path = await GetCheckCapabilityPathAsync();
+            using var request = new HttpRequestMessage(HttpMethod.Post, path.TrimStart('/'));
             request.Headers.Add("x-apikey", apiKey);
             request.Headers.Add("agentid", agentId);
             var payload = new Dictionary<string, IReadOnlyList<string>>

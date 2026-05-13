@@ -147,21 +147,28 @@ public sealed class CampaignQueueWorker : BackgroundService
 
         item.AttemptCount++;
         JioCxSendResult result;
-        object payload;
+        string finalPayloadJson;
         var messageId = Guid.NewGuid().ToString("N");
         try
         {
-            var data = JsonSerializer.Deserialize<object>(message.PayloadJson) ?? new { };
-            payload = new
+            var payloadJson = message.PayloadJson;
+
+            // Variable replacement
+            if (!string.IsNullOrWhiteSpace(contact.VariablesJson))
             {
-                messageID = messageId,
-                agentID = client.AgentId,
-                campaignID = campaign.Id.ToString(),
-                contactID = item.ContactId.ToString(),
-                contacts = new[] { contact.MobileNumber },
-                data,
-                data_sms = (object?)null
-            };
+                var variables = JsonSerializer.Deserialize<Dictionary<string, string>>(contact.VariablesJson);
+                if (variables != null)
+                {
+                    foreach (var kvp in variables)
+                    {
+                        payloadJson = payloadJson.Replace("{{" + kvp.Key + "}}", kvp.Value, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+            }
+
+            finalPayloadJson = payloadJson;
+            var data = JsonSerializer.Deserialize<object>(finalPayloadJson) ?? new { };
+            
             result = await jiocx.SendMessageAsync(
                 protector.Unprotect(client.ApiKey),
                 new JioCxSendRequest(messageId, client.AgentId, campaign.Id.ToString(), [contact.MobileNumber], data),
@@ -170,7 +177,7 @@ public sealed class CampaignQueueWorker : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "JioCX SendMessageAsync failed for item {ItemId}.", item.Id);
-            payload = new { error = "Failed before request payload could be sent." };
+            finalPayloadJson = "{\"error\": \"Failed before request payload could be sent.\"}";
             result = new JioCxSendResult(false, 500, ex.Message);
         }
 
@@ -182,27 +189,18 @@ public sealed class CampaignQueueWorker : BackgroundService
             item.LastError = null;
             contact.Status = ContactStatus.Sent;
 
-            var previousBalance = client.Credits;
-            client.Credits = Math.Max(0, client.Credits - creditCost);
-
-            var clientUsers = await db.Users.Where(u => u.ClientId == client.Id).ToListAsync(cancellationToken);
-            foreach (var cu in clientUsers)
+            if (!isAdmin)
             {
-                cu.Credits = client.Credits;
-                await db.UserCreditHistories.AddAsync(new UserCreditHistory
+                var previousBalance = client.Credits;
+                client.Credits = Math.Max(0, client.Credits - creditCost);
+                
+                // Sync all users of this client
+                var clientUsers = await db.Users.Where(u => u.ClientId == client.Id).ToListAsync(cancellationToken);
+                foreach (var cu in clientUsers)
                 {
-                    UserId = cu.Id,
-                    Amount = creditCost,
-                    PreviousBalance = previousBalance,
-                    NewBalance = client.Credits,
-                    TransactionType = "Spent",
-                    Reason = $"Message sent to {contact.MobileNumber} (Campaign: {campaign.Name})",
-                    CreatedAt = DateTimeOffset.UtcNow
-                }, cancellationToken);
-            }
+                    cu.Credits = client.Credits;
+                }
 
-            if (clientUsers.Count == 0)
-            {
                 await db.UserCreditHistories.AddAsync(new UserCreditHistory
                 {
                     UserId = creator.Id,
@@ -215,7 +213,7 @@ public sealed class CampaignQueueWorker : BackgroundService
                 }, cancellationToken);
             }
 
-            await AppendLogAsync(db, campaign.Id, contact.Id, "Successfully Send", null, BuildSendDiagnostic("JioCX sendMessage accepted the request.", client, payload, result), result.RequestPayload, result.ResponseJson, cancellationToken);
+            await AppendLogAsync(db, campaign.Id, contact.Id, "Successfully Send", null, BuildSendDiagnostic("JioCX sendMessage accepted the request.", client, finalPayloadJson, result), result.RequestPayload, result.ResponseJson, cancellationToken);
             await UpsertReportAsync(db, campaign.Id, cancellationToken);
         }
         else
@@ -227,7 +225,7 @@ public sealed class CampaignQueueWorker : BackgroundService
                 ? retryPolicy.NextAttemptAt(DateTimeOffset.UtcNow, item.AttemptCount)
                 : null;
             contact.Status = item.Status == CampaignQueueStatus.Failed ? ContactStatus.Failed : contact.Status;
-            await AppendLogAsync(db, campaign.Id, contact.Id, item.Status.ToString(), result.StatusCode.ToString(), BuildSendDiagnostic($"JioCX sendMessage failed (HTTP {result.StatusCode}).", client, payload, result), result.RequestPayload, result.ResponseJson, cancellationToken);
+            await AppendLogAsync(db, campaign.Id, contact.Id, item.Status.ToString(), result.StatusCode.ToString(), BuildSendDiagnostic($"JioCX sendMessage failed (HTTP {result.StatusCode}).", client, finalPayloadJson, result), result.RequestPayload, result.ResponseJson, cancellationToken);
         }
 
         await UpdateCampaignStatusAsync(db, campaign, cancellationToken);
@@ -251,13 +249,13 @@ public sealed class CampaignQueueWorker : BackgroundService
         }, cancellationToken);
     }
 
-    private static string BuildSendDiagnostic(string message, Client client, object requestPayload, JioCxSendResult result)
+    private static string BuildSendDiagnostic(string message, Client client, string requestPayload, JioCxSendResult result)
     {
         return JsonSerializer.Serialize(new
         {
             errorMessage = message,
             requestHeaders = $"x-apikey: ***MASKED***{Environment.NewLine}Content-Type: application/json",
-            requestPayload = JsonSerializer.Serialize(requestPayload),
+            requestPayload = requestPayload,
             responseStatusCode = result.StatusCode.ToString(),
             responseBody = result.ResponseJson
         });

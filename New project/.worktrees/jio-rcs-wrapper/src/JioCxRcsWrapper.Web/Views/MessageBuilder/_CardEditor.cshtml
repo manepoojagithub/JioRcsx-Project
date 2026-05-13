@@ -1,0 +1,48 @@
+@model JioCxRcsWrapper.Web.Models.MessageBuilder.MessageCardViewModel
+@{
+    var index = ViewData["index"] ?? 0;
+    var prefix = $"Cards[{index}]";
+}
+
+<div class="card-editor-inner">
+    <div class="card-editor-header">
+        <h4 class="h6 mb-0">Card Content</h4>
+        @if ((int)index > 0)
+        {
+            <button type="button" class="btn btn-sm btn-link text-danger remove-card" data-index="@index">Remove</button>
+        }
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label small">Media File (Image/Video)</label>
+        <input type="file" name="@(prefix).MediaFile" class="form-control form-control-sm media-input" accept="image/*,video/*" />
+        <input type="hidden" name="@(prefix).MediaUrl" value="@Model.MediaUrl" />
+        <input type="hidden" name="@(prefix).ThumbnailUrl" value="@Model.ThumbnailUrl" />
+        <div class="form-text x-small">Image max 2MB, Video max 10MB.</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label small">Title</label>
+        <input type="text" name="@(prefix).Title" class="form-control form-control-sm title-input" maxlength="200" value="@Model.Title" placeholder="Card Title (max 200)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label small">Description</label>
+        <textarea name="@(prefix).Description" class="form-control form-control-sm desc-input" rows="3" maxlength="2000" placeholder="Card Description (max 2000)">@Model.Description</textarea>
+    </div>
+
+    <div class="cta-container">
+        <label class="form-label small d-flex justify-content-between">
+            <span>Buttons (max 4)</span>
+            <button type="button" class="btn btn-link btn-sm p-0 add-cta" data-card-index="@index">Add Button</button>
+        </label>
+        <div class="ctas-list" data-card-index="@index">
+            @for (int i = 0; i < Model.Ctas.Count; i++)
+            {
+                <div class="cta-item mb-2 p-2 border rounded bg-light" data-cta-index="@i">
+                    @await Html.PartialAsync("_CtaEditor", Model.Ctas[i], new ViewDataDictionary(ViewData) { { "cardIndex", index }, { "ctaIndex", i } })
+                </div>
+            }
+        </div>
+    </div>
+</div>

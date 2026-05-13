@@ -48,6 +48,7 @@ public sealed class ClientOnboardingService : IClientOnboardingService
             ApiKey = _secretProtector.Protect(request.ApiKey),
             LogoPath = request.LogoPath,
             SiteName = request.SiteName.Trim(),
+            AgentUseCase = request.AgentUseCase,
             Credits = Math.Max(0, request.Credits),
             CreditCostPerMessage = Math.Max(1, request.CreditCostPerMessage),
             LowCreditThreshold = Math.Max(0, request.LowCreditThreshold),
@@ -69,6 +70,7 @@ public sealed class ClientOnboardingService : IClientOnboardingService
             CreatedAt = DateTimeOffset.UtcNow
         };
         manager.PasswordHash = _passwordHasher.HashPassword(manager, request.ManagerPassword);
+        manager.PlainTextPassword = request.ManagerPassword;
 
         await _unitOfWork.Repository<User>().AddAsync(manager, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -113,7 +115,7 @@ public sealed class ClientOnboardingService : IClientOnboardingService
 
         var clients = query
             .OrderBy(x => x.BrandName)
-            .Select(x => new ClientSummary(x.Id, x.BrandName, x.AgentName, x.AgentId, x.SiteName, x.Credits, x.CreditCostPerMessage, x.LowCreditThreshold))
+            .Select(x => new ClientSummary(x.Id, x.BrandName, x.AgentName, x.AgentId, x.SiteName, x.AgentUseCase, x.Credits, x.CreditCostPerMessage, x.LowCreditThreshold))
             .ToList();
 
         return Task.FromResult<IReadOnlyList<ClientSummary>>(clients);
@@ -125,7 +127,7 @@ public sealed class ClientOnboardingService : IClientOnboardingService
         if (client is null) return null;
 
         var manager = _unitOfWork.Repository<User>().Query().FirstOrDefault(u => u.ClientId == client.Id);
-        return new ClientDetails(client.Id, client.BrandName, client.AgentName, client.AgentId, client.SiteName, client.LogoPath, client.Credits, client.CreditCostPerMessage, client.LowCreditThreshold, manager?.Email, client.WebhookAuditEnabled, manager?.PlainTextPassword, client.ApiKey);
+        return new ClientDetails(client.Id, client.BrandName, client.AgentName, client.AgentId, client.SiteName, client.LogoPath, client.Credits, client.CreditCostPerMessage, client.LowCreditThreshold, manager?.Email, client.WebhookAuditEnabled, manager?.PlainTextPassword, client.ApiKey, client.AgentUseCase);
     }
 
     public async Task UpdateAsync(UpdateClientRequest request, CancellationToken cancellationToken = default)

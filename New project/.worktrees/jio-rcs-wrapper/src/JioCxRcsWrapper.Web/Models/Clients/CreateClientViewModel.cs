@@ -17,6 +17,8 @@ public sealed class CreateClientViewModel
     [Required]
     public string SiteName { get; set; } = string.Empty;
     [Required]
+    public string AgentUseCase { get; set; } = "Transactional";
+    [Required]
     public string ManagerName { get; set; } = string.Empty;
     [Required, EmailAddress]
     public string ManagerEmail { get; set; } = string.Empty;

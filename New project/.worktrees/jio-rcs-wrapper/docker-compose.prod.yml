@@ -7,6 +7,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
       MSSQL_SA_PASSWORD: "${SQL_SA_PASSWORD}"
+      TZ: "Asia/Kolkata"
     volumes:
       - sqlserver-data:/var/opt/mssql
     ports:
@@ -40,6 +41,7 @@ services:
       Queue__MaxAttempts: "${QUEUE_MAX_ATTEMPTS:-4}"
       Queue__PollSeconds: "${QUEUE_POLL_SECONDS:-10}"
       DataProtection__KeysPath: "/var/lib/advait-services/keys"
+      TZ: "Asia/Kolkata"
     volumes:
       - web-uploads:/app/wwwroot/uploads
       - dataprotection-keys:/var/lib/advait-services/keys

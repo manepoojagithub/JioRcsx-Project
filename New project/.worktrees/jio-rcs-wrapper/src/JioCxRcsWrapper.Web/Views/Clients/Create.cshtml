@@ -36,6 +36,14 @@
             <div><label asp-for="AgentName" class="form-label"></label><input asp-for="AgentName" class="form-control" /></div>
             <div><label asp-for="AgentId" class="form-label"></label><input asp-for="AgentId" class="form-control" /></div>
             <div><label asp-for="SiteName" class="form-label"></label><input asp-for="SiteName" class="form-control" /></div>
+            <div>
+                <label asp-for="AgentUseCase" class="form-label">Agent Use Case</label>
+                <select asp-for="AgentUseCase" class="form-select">
+                    <option value="Transactional">Transactional</option>
+                    <option value="Promotional">Promotional</option>
+                    <option value="OTP">OTP</option>
+                </select>
+            </div>
         </div>
     </section>
 

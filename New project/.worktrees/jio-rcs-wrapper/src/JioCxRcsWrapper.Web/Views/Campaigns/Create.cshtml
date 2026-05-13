@@ -35,7 +35,7 @@
                     </div>
                     <div>
                         <label asp-for="ClientId" class="form-label">Client</label>
-                        <select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select"></select>
+                        <select asp-for="ClientId" asp-items="ViewBag.Clients" class="form-select" id="ClientIdSelect"></select>
                         <span asp-validation-for="ClientId" class="text-danger"></span>
                     </div>
                 </div>
@@ -131,7 +131,7 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (function () {
-            const clientSelect = document.getElementById("ClientId");
+            const clientSelect = document.getElementById("ClientIdSelect");
             const templateSelect = document.getElementById("TemplateId");
             const templatePreview = document.getElementById("template-preview");
 
@@ -157,7 +157,7 @@
             async function updatePreview() {
                 const templateId = templateSelect.value;
                 if (!templateId) {
-                    templatePreview.innerHTML = '<span class="text-muted">Select a template to see preview</span>';
+                    templatePreview.innerHTML = '<div class="border rounded p-3 bg-light text-center text-muted">Select a template to see preview</div>';
                     return;
                 }
 
@@ -174,48 +174,63 @@
             }
 
             function renderPreview(template) {
-                let html = `<div class="mb-2"><span class="badge bg-primary me-2">${template.messageType}</span><strong>${template.name}</strong></div>`;
+                let html = `<div class="mb-3 border-bottom pb-2 d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">${template.messageType}</span>
+                    <small class="text-muted">${template.name}</small>
+                </div>`;
                 
                 try {
                     const payload = JSON.parse(template.payloadJson);
                     const content = payload.content;
 
-                    if (content.plainText) {
-                        html += `<div class="p-3 border rounded bg-white shadow-sm" style="border-radius: 1.5rem !important; border-bottom-left-radius: 0.3rem !important;">${content.plainText.replace(/\n/g, '<br>')}</div>`;
+                    if (content.text) {
+                        html += `<div class="preview-bubble">${content.text.replace(/\n/g, '<br>')}</div>`;
                         renderSuggestions(content.suggestions, (sHtml) => html += sHtml);
-                    } else if (content.richCardDetails && content.richCardDetails.standalone) {
-                        const card = content.richCardDetails.standalone.content;
+                    } 
+                    else if (content.richCardDetails && content.richCardDetails.standalone) {
+                        const card = content.richCardDetails.standalone.cardContent;
                         html += renderCard(card);
-                    } else if (content.richCardDetails && content.richCardDetails.carousel) {
+                    } 
+                    else if (content.richCardDetails && content.richCardDetails.carousel) {
                         const carousel = content.richCardDetails.carousel;
-                        html += `<div class="d-flex overflow-auto pb-2 gap-2" style="max-width: 100%;">`;
-                        carousel.contents.forEach(card => {
-                            html += `<div style="min-width: 250px; max-width: 250px;">${renderCard(card)}</div>`;
+                        html += `<div class="preview-carousel">`;
+                        carousel.cardContents.forEach(card => {
+                            html += `<div class="preview-carousel-item">${renderCard(card)}</div>`;
                         });
                         html += `</div>`;
                     } else {
-                        html += `<pre class="small bg-white p-2 border rounded">${JSON.stringify(payload, null, 2)}</pre>`;
+                        html += `<pre class="x-small bg-white p-2 border rounded"><code>${JSON.stringify(payload, null, 2)}</code></pre>`;
                     }
                 } catch (e) {
-                    html += `<pre class="small bg-white p-2 border rounded">${template.payloadJson}</pre>`;
+                    html += `<div class="alert alert-warning p-2 small">Parse Error: ${e.message}</div>`;
                 }
                 
                 templatePreview.innerHTML = html;
             }
 
             function renderCard(card) {
-                let cardHtml = `<div class="card shadow-sm border-0" style="border-radius: 1rem; overflow: hidden;">`;
-                if (card.cardMedia && card.cardMedia.contentInfo && card.cardMedia.contentInfo.fileUrl) {
-                    cardHtml += `<img src="${card.cardMedia.contentInfo.fileUrl}" class="card-img-top" style="height: 120px; object-fit: cover;">`;
+                let cardHtml = `<div class="preview-card">`;
+                
+                if (card.media && card.media.contentUrl) {
+                    cardHtml += `<div class="preview-media"><img src="${card.media.contentUrl}" style="width:100%;height:100%;object-fit:cover;"></div>`;
+                } else {
+                    cardHtml += `<div class="preview-media"></div>`;
                 }
-                cardHtml += `<div class="card-body p-2">`;
-                cardHtml += `<h6 class="card-title mb-1 small"><strong>${card.cardTitle}</strong></h6>`;
-                cardHtml += `<p class="card-text small text-muted" style="font-size: 0.75rem; margin-bottom: 0.5rem;">${card.cardDescription}</p>`;
-                if (card.cardFooter) {
-                    cardHtml += `<p class="card-text small text-muted border-top pt-1" style="font-size: 0.7rem; font-style: italic;">${card.cardFooter}</p>`;
-                }
+
+                cardHtml += `<div class="preview-body">`;
+                if (card.title) cardHtml += `<div class="preview-title">${card.title}</div>`;
+                if (card.description) cardHtml += `<div class="preview-desc">${card.description}</div>`;
                 cardHtml += `</div>`;
-                renderSuggestions(card.suggestions, (sHtml) => cardHtml += `<div class="p-2 border-top">${sHtml}</div>`);
+                
+                if (card.suggestions && card.suggestions.length > 0) {
+                    cardHtml += `<div class="preview-btns">`;
+                    card.suggestions.forEach(s => {
+                        const text = s.action ? s.action.displayText : (s.reply ? s.reply.displayText : 'Action');
+                        cardHtml += `<div class="preview-btn">${text}</div>`;
+                    });
+                    cardHtml += `</div>`;
+                }
+                
                 cardHtml += `</div>`;
                 return cardHtml;
             }
@@ -224,7 +239,7 @@
                 if (!suggestions || suggestions.length === 0) return;
                 let sHtml = `<div class="d-grid gap-1 mt-2">`;
                 suggestions.forEach(s => {
-                    const text = s.reply ? s.reply.plainText : s.action.plainText;
+                    const text = s.action ? s.action.displayText : (s.reply ? s.reply.displayText : 'Action');
                     sHtml += `<button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-1" style="font-size: 0.7rem;">${text}</button>`;
                 });
                 sHtml += `</div>`;

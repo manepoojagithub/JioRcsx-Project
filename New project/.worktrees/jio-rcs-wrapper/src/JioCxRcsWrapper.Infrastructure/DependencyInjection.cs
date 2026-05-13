@@ -26,6 +26,7 @@ public static class DependencyInjection
                 sql => sql.EnableRetryOnFailure()));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IApiSettingService, ApiSettingService>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ISecretProtector, ApiKeyProtector>();
         services.AddScoped<ICsvReportExporter, CsvReportExporter>();

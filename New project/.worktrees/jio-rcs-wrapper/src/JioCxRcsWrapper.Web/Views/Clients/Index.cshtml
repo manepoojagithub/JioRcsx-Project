@@ -75,10 +75,11 @@
         <table class="table panel-table align-middle mb-0">
             <thead>
             <tr>
-                <th>Brand</th>
-                <th>Agent</th>
+                <th>Brand Name</th>
+                <th>Agent Name</th>
                 <th>Agent ID</th>
-                <th>Site</th>
+                <th>Use Case</th>
+                <th>Credits</th>
                 <th>Credits</th>
                 <th class="text-end action-cell">Actions</th>
             </tr>
@@ -90,7 +91,7 @@
                     <td class="fw-semibold">@client.BrandName</td>
                     <td>@client.AgentName</td>
                     <td><code>@client.AgentId</code></td>
-                    <td>@client.SiteName</td>
+                    <td><span class="badge bg-light text-dark border">@client.AgentUseCase</span></td>
                     <td>@client.Credits</td>
                     <td class="text-end action-cell">
                         @if (canUpdate)

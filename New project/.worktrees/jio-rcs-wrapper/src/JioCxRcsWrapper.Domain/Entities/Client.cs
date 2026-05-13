@@ -10,6 +10,7 @@ public sealed class Client : BaseEntity
     public string ApiKey { get; set; } = string.Empty;
     public string? LogoPath { get; set; }
     public string SiteName { get; set; } = string.Empty;
+    public string AgentUseCase { get; set; } = "Transactional";
     public int Credits { get; set; }
     public int CreditCostPerMessage { get; set; } = 1;
     public int LowCreditThreshold { get; set; } = 10;

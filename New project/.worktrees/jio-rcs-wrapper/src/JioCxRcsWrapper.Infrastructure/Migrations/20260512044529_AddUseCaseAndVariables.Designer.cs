@@ -4,6 +4,7 @@ using JioCxRcsWrapper.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JioCxRcsWrapper.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512044529_AddUseCaseAndVariables")]
+    partial class AddUseCaseAndVariables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,61 +24,6 @@ namespace JioCxRcsWrapper.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("JioCxRcsWrapper.Domain.Entities.ApiSetting", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ApiSettings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Base URL for JioCX API",
-                            Key = "JioCx_BaseUrl",
-                            Value = "https://rcsapi.jiocx.com"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Path for uploading media",
-                            Key = "JioCx_UploadFilePath",
-                            Value = "/api/v1/uploadFile"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "Path for sending messages",
-                            Key = "JioCx_SendMessagePath",
-                            Value = "/api/v1/sendMessage"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Description = "Path for checking RCS capability",
-                            Key = "JioCx_CheckCapabilityPath",
-                            Value = "/api/v1/checkCapability"
-                        });
-                });
 
             modelBuilder.Entity("JioCxRcsWrapper.Domain.Entities.AuditLog", b =>
                 {

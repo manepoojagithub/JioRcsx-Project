@@ -33,9 +33,11 @@ public sealed record CampaignOperationResult(bool IsSuccess, int? Id, IReadOnlyL
     public static CampaignOperationResult Failed(IEnumerable<string> errors) => new(false, null, errors.ToArray());
 }
 
-public sealed record ParsedContactsResult(bool IsValid, IReadOnlyList<string> MobileNumbers, IReadOnlyList<string> Errors)
+public sealed record ParsedContactData(string MobileNumber, Dictionary<string, string> Variables);
+
+public sealed record ParsedContactsResult(bool IsValid, IReadOnlyList<ParsedContactData> Contacts, IReadOnlyList<string> Errors)
 {
-    public static ParsedContactsResult Success(IReadOnlyList<string> mobileNumbers) => new(true, mobileNumbers, []);
+    public static ParsedContactsResult Success(IReadOnlyList<ParsedContactData> contacts) => new(true, contacts, []);
 
     public static ParsedContactsResult Failed(IReadOnlyList<string> errors) => new(false, [], errors);
 }

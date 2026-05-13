@@ -28,6 +28,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<MessageTemplate> MessageTemplates => Set<MessageTemplate>();
     public DbSet<UserCreditHistory> UserCreditHistories => Set<UserCreditHistory>();
 
+    public DbSet<ApiSetting> ApiSettings => Set<ApiSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

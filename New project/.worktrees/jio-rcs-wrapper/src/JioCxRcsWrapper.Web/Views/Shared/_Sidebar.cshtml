@@ -27,6 +27,7 @@
     }
     @if (User.IsInRole("Admin"))
     {
+        <a asp-controller="ApiSettings" asp-action="Index"><span class="nav-icon">S</span><span class="nav-label">API Config</span></a>
         <a asp-controller="AuditLogs" asp-action="Index"><span class="nav-icon">A</span><span class="nav-label">Audit Logs</span></a>
     }
 </nav>

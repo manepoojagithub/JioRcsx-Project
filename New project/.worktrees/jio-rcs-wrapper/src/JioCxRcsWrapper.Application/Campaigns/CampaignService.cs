@@ -222,16 +222,18 @@ public sealed class CampaignService : ICampaignService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var addedCount = 0;
-        foreach (var mobileNumber in parsed.MobileNumbers.Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (var contactData in parsed.Contacts)
         {
-            if (!existingMobileNumbers.Add(mobileNumber)) continue;
+            if (existingMobileNumbers.Contains(contactData.MobileNumber)) continue;
 
             await contactRepository.AddAsync(new Contact
             {
                 CampaignId = campaign.Id,
-                MobileNumber = mobileNumber,
-                Status = ContactStatus.Pending
+                MobileNumber = contactData.MobileNumber,
+                Status = ContactStatus.Pending,
+                VariablesJson = JsonSerializer.Serialize(contactData.Variables)
             }, cancellationToken);
+            existingMobileNumbers.Add(contactData.MobileNumber);
             addedCount++;
         }
 

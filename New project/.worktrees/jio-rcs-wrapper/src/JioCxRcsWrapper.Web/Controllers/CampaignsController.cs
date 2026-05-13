@@ -222,7 +222,7 @@ public sealed class CampaignsController : Controller
         }
 
         ViewBag.Clients = clients
-            .Select(client => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem(client.BrandName, client.Id.ToString()))
+            .Select(client => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem($"{client.BrandName} ({client.AgentUseCase})", client.Id.ToString()))
             .Prepend(new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem("Select client", string.Empty))
             .ToArray();
     }

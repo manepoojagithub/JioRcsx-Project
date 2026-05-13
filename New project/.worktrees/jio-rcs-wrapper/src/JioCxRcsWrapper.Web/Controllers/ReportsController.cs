@@ -5,6 +5,9 @@ using JioCxRcsWrapper.Application.Security;
 using JioCxRcsWrapper.Web.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using JioCxRcsWrapper.Application.Common.Interfaces;
+using JioCxRcsWrapper.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace JioCxRcsWrapper.Web.Controllers;
 
@@ -15,13 +18,15 @@ public sealed class ReportsController : Controller
     private readonly ICsvReportExporter _csvExporter;
     private readonly IPdfReportExporter _pdfExporter;
     private readonly ICurrentUser _currentUser;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public ReportsController(IReportService reports, ICsvReportExporter csvExporter, IPdfReportExporter pdfExporter, ICurrentUser currentUser)
+    public ReportsController(IReportService reports, ICsvReportExporter csvExporter, IPdfReportExporter pdfExporter, ICurrentUser currentUser, IUnitOfWork unitOfWork)
     {
         _reports = reports;
         _csvExporter = csvExporter;
         _pdfExporter = pdfExporter;
         _currentUser = currentUser;
+        _unitOfWork = unitOfWork;
     }
 
     [RequirePermission("Reports", "View")]
@@ -50,6 +55,25 @@ public sealed class ReportsController : Controller
         ViewBag.Clicked = result.Rows.Count(row => row.Clicked);
         ViewBag.Errors = result.Rows.Count(row => !string.IsNullOrWhiteSpace(row.LastError));
         return View(PagedResult<ContactReportRow>.Create(result.Rows, pageNumber, pageSize));
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetTechnicalTrace(int campaignId, CancellationToken cancellationToken)
+    {
+        var logs = await _unitOfWork.Repository<MessageLog>().Query()
+            .Where(l => l.CampaignId == campaignId && (l.RequestPayload != null || l.ResponseJson != null))
+            .OrderByDescending(l => l.Timestamp)
+            .Take(20)
+            .Select(l => new {
+                l.Status,
+                l.Timestamp,
+                l.RequestPayload,
+                l.ResponseJson
+            })
+            .ToListAsync(cancellationToken);
+
+        return Json(logs);
     }
 
     [RequirePermission("Reports", "Download")]

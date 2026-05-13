@@ -228,11 +228,11 @@ public sealed class CampaignServiceTests
     }
 
     [Fact]
-    public async Task CreateCampaign_AllowsGlobalRichCardTemplateForClient()
+    public async Task CreateCampaign_AllowsGlobalStandaloneCardTemplateForClient()
     {
         var harness = CampaignHarness.CreateManager(clientId: 10);
         harness.AddClient(10);
-        var template = harness.AddTemplate(clientId: null, MessageType.RichCard);
+        var template = harness.AddTemplate(clientId: null, MessageType.StandaloneCard);
 
         var result = await harness.Service.CreateDraftAsync(
             new CreateCampaignRequest("One Time", 10, CampaignType.OneTime, null, template.Id, ["+918000000000"]),
